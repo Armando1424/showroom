@@ -101,7 +101,15 @@ Build de producción: `npm run build` (genera `frontend/dist`).
 Pantallas: login, lista de productos, alta/edición, marcar vendido, visibilidad y
 panel de usuarios/roles. HashRouter; base `/showroom/`.
 
+## URLs
+
+- Repo: https://github.com/Armando1424/showroom
+- Pages: https://armando1424.github.io/showroom/
+- Supabase: https://tojdcyzdeigiynvvvrwz.supabase.co
+
 ## Despliegue
+
+La guía paso a paso está en [docs/puesta-en-marcha.md](docs/puesta-en-marcha.md).
 
 1. Crear el repo `showroom` en GitHub (público, requerido por Pages gratis).
 2. Settings → Pages → Source: **GitHub Actions**.
