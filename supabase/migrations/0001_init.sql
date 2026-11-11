@@ -284,7 +284,7 @@ security definer
 set search_path = ''
 as $$
     insert into public.audit_log (actor_id, entidad, entidad_id, accion, payload)
-    values (private.actor_actual(), p_entidad, p_accion, p_entidad_id::uuid, p_payload);
+    values (private.actor_actual(), p_entidad, p_entidad_id::uuid, p_accion, p_payload);
 $$;
 
 -- =====================================================================
