@@ -23,7 +23,7 @@
   1. borrado lógico de vendidos con `sold_at` anterior a `PURGE_LOGICAL_DAYS`
      (7 por defecto);
   2. purga física de borrados con `deleted_at` anterior a
-     `PURGE_PHYSICAL_DAYS` (7 por defecto).
+     `PURGE_PHYSICAL_DAYS` (30 por defecto, es decir, día 37 desde la venta).
   El script solo borra; el trigger `AFTER DELETE` audita la purga.
 
 ## GitHub Pages
@@ -32,7 +32,7 @@
   público: la `anon key` es pública por diseño y RLS protege los datos.
 - Nunca subir `.env`, `service_role` ni tokens. El build solo recibe
   `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`.
-- URL esperada: `https://armando1424.github.io/<repo>/` (pendiente confirmar
+- URL esperada: `https://armando1424.github.io/showroom/` (pendiente confirmar
   el nombre del repo).
 
 ## Supabase Auth

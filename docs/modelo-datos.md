@@ -120,6 +120,6 @@ RPCs son `SECURITY DEFINER` y validan el actor.
 1. **Día 0**: venta (`estado = 'vendido'`, `sold_by`, `sold_at`).
 2. **Día 7**: borrado lógico (`deleted_at`, `deleted_by`) — lo ejecuta el cron
    en modo sistema, no la RPC (la RPC rechaza vendidos).
-3. **Día 7 + X**: purga física (`DELETE`), auditada como `purga`.
+3. **Día 7 + 30 = día 37**: purga física (`DELETE`), auditada como `purga`.
 
-`X` se configura con `PURGE_PHYSICAL_DAYS` (por defecto 7).
+`X = 30` se configura con `PURGE_PHYSICAL_DAYS`.

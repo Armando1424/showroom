@@ -16,15 +16,20 @@ manual en iPad/Excel y el aviso por WhatsApp.
 
 ```text
 showroom/
-├── frontend/                  # React + Vite + TS (pendiente)
+├── frontend/                  # React + Vite + TS, HashRouter
 ├── supabase/
 │   └── migrations/
 │       └── 0001_init.sql      # tablas, RLS, triggers, RPCs, grants
-├── scripts/                   # seed_admin.py, purge.py (pendiente)
-├── .github/workflows/         # deploy, purge, seed-admin (pendiente)
+├── scripts/
+│   ├── seed_admin.py          # primer admin (service_role, manual)
+│   └── purge.py               # dos etapas (7 / 30 días)
+├── .github/workflows/
+│   ├── deploy.yml             # build + GitHub Pages
+│   ├── purge.yml              # cron diario
+│   └── seed-admin.yml         # workflow_dispatch
 ├── docs/
 │   ├── modelo-datos.md
-│   └── operacion.md           # pausa de Supabase, cron 60 días (pendiente)
+│   └── operacion.md
 ├── .env.example
 └── README.md
 ```
@@ -82,9 +87,42 @@ SUPABASE_URL=...
 SUPABASE_SERVICE_ROLE_KEY=...   # solo Actions / local
 ```
 
+## Frontend
+
+```sh
+cd frontend
+cp .env.example .env   # VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
+npm install
+npm run dev
+```
+
+Build de producción: `npm run build` (genera `frontend/dist`).
+
+Pantallas: login, lista de productos, alta/edición, marcar vendido, visibilidad y
+panel de usuarios/roles. HashRouter; base `/showroom/`.
+
+## Despliegue
+
+1. Crear el repo `showroom` en GitHub (público, requerido por Pages gratis).
+2. Settings → Pages → Source: **GitHub Actions**.
+3. Secrets: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_URL`,
+   `SUPABASE_SERVICE_ROLE_KEY`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`.
+   Variable opcional: `SEED_ADMIN_NOMBRE`.
+4. Ejecutar la migración en Supabase.
+5. Authentication → Email: **desactivar signups**.
+6. Site URL y Redirect URLs: `https://armando1424.github.io/showroom/`.
+7. Ejecutar `seed-admin` una vez (`workflow_dispatch`).
+8. Invitar usuarios desde el Dashboard y activarlos/asignar roles en la app.
+
+## Purga
+
+- Día 7 tras la venta: borrado lógico.
+- Día 37 (7 + 30): purga física.
+- El cron diario mantiene Supabase despierto; GitHub desactiva crons tras 60
+  días sin actividad (ver `docs/operacion.md`).
+
 ## Pendiente
 
-- Frontend (login, lista, alta, marcar vendido, panel admin).
-- `scripts/seed_admin.py` y `scripts/purge.py`.
-- Workflows `deploy`, `purge` y `seed-admin`.
-- Confirmar nombre del repositorio para la URL de GitHub Pages.
+- Probar la migración en un proyecto Supabase desechable.
+- Configurar secretos y Pages.
+- Probar el flujo de invitación del Dashboard con la app.
