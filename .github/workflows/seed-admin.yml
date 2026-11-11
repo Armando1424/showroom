@@ -12,14 +12,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Check configuration
+        id: check
+        env:
+          KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EMAIL: ${{ secrets.SEED_ADMIN_EMAIL }}
+          PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+        run: |
+          if [ -z "$KEY" ] || [ -z "$EMAIL" ] || [ -z "$PASSWORD" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Faltan secretos del seed (service_role, email o password); se omite."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.check.outputs.configured == 'true'
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
+      - if: steps.check.outputs.configured == 'true'
+        name: Install dependencies
         run: pip install requests
 
-      - name: Seed admin
+      - if: steps.check.outputs.configured == 'true'
+        name: Seed admin
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
