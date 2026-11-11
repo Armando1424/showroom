@@ -1,0 +1,26 @@
+# Frontend build
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# Dependencias / artefactos
+node_modules/
+dist/
+build/
+*.log
+
+# Secretos
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
