@@ -4,9 +4,9 @@ import { useAuth } from './AuthProvider'
 import type { Rol } from '../types'
 
 export function RequireAuth() {
-  const { session, profile, loading, signOut, refresh } = useAuth()
+  const { session, profile, loading, profileLoading, signOut, refresh } = useAuth()
 
-  if (loading) {
+  if (loading || profileLoading) {
     return <div className="center muted">Cargando…</div>
   }
 

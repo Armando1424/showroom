@@ -973,6 +973,14 @@ grant select, insert, delete on public.product_visibility to authenticated;
 grant select on public.audit_log to authenticated;
 revoke insert, update, delete on public.audit_log from authenticated;
 
+-- Scripts de sistema (seed/purga) con service_role. No se concede escritura
+-- en audit_log: esa tabla solo la escriben los triggers SECURITY DEFINER.
+grant select, insert, update, delete on public.profiles to service_role;
+grant select, insert, update, delete on public.user_roles to service_role;
+grant select, insert, update, delete on public.productos to service_role;
+grant select, insert, update, delete on public.product_visibility to service_role;
+grant select on public.audit_log to service_role;
+
 -- Funciones futuras: sin EXECUTE por defecto para PUBLIC/anon.
 alter default privileges in schema public revoke execute on functions from public;
 alter default privileges in schema public revoke execute on functions from anon;

@@ -16,6 +16,7 @@ interface AuthContextValue {
   profile: Profile | null
   roles: Rol[]
   loading: boolean
+  profileLoading: boolean
   isAdmin: boolean
   isProveedor: boolean
   isVendedor: boolean
@@ -33,8 +34,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [roles, setRoles] = useState<Rol[]>([])
   const [loading, setLoading] = useState(true)
+  const [profileLoading, setProfileLoading] = useState(false)
 
   const loadProfile = useCallback(async (userId: string) => {
+    setProfileLoading(true)
+
     // El trigger de auth.users puede tardar unos milisegundos.
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const { data, error } = await supabase
@@ -51,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setProfile(data as Profile)
         setRoles(((roleRows ?? []) as { rol: Rol }[]).map((row) => row.rol))
+        setProfileLoading(false)
         return
       }
 
@@ -59,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setProfile(null)
     setRoles([])
+    setProfileLoading(false)
   }, [])
 
   useEffect(() => {
@@ -82,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setProfile(null)
           setRoles([])
+          setProfileLoading(false)
         }
       },
     )
@@ -113,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       roles,
       loading,
+      profileLoading,
       isAdmin: roles.includes('admin'),
       isProveedor: roles.includes('proveedor'),
       isVendedor: roles.includes('vendedor'),
@@ -120,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       refresh,
     }),
-    [session, profile, roles, loading, signIn, signOut, refresh],
+    [session, profile, roles, loading, profileLoading, signIn, signOut, refresh],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
