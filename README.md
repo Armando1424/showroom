@@ -20,10 +20,12 @@ showroom/
 ├── supabase/
 │   ├── migrations/
 │   │   ├── 0001_init.sql      # tablas, RLS, triggers, RPCs, grants
-│   │   └── 0002_imagen.sql    # imagen obligatoria + bucket privado
+│   │   ├── 0002_imagen.sql    # imagen obligatoria + bucket privado
+│   │   └── 0003_admin_devolucion.sql  # devolver venta + borrado admin
 │   ├── reset.sql
 │   ├── verify.sql
-│   └── verify_imagen.sql
+│   ├── verify_imagen.sql
+│   └── verify_admin.sql
 ├── scripts/
 │   ├── seed_admin.py          # primer admin (service_role, manual)
 │   └── purge.py               # dos etapas (7 / 30 días)

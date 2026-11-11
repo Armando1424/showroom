@@ -17,6 +17,7 @@ contenido de:
 ```text
 supabase/migrations/0001_init.sql
 supabase/migrations/0002_imagen.sql
+supabase/migrations/0003_admin_devolucion.sql
 ```
 
 `0002_imagen.sql` añade `imagen_path` (NOT NULL), el bucket privado
@@ -25,8 +26,8 @@ migración lo dirá; bórralos y vuelve a ejecutarla.
 
 El bloque de reset del inicio está comentado; no lo uses en producción.
 Comprobar que no hay errores y que existe el trigger `on_auth_user_created` en
-`auth.users`. Después ejecutar `supabase/verify.sql` y
-`supabase/verify_imagen.sql`.
+`auth.users`. Después ejecutar `supabase/verify.sql`,
+`supabase/verify_imagen.sql` y `supabase/verify_admin.sql`.
 
 ## 2. Auth
 

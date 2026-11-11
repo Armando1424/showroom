@@ -71,6 +71,14 @@ export function Productos() {
     else await load()
   }
 
+  async function devolver(producto: Producto) {
+    if (!window.confirm(`¿Devolver "${producto.nombre}" a disponible?`)) return
+    setError(null)
+    const { error: rpcError } = await supabase.rpc('devolver_producto', { p_id: producto.id })
+    if (rpcError) setError(rpcError.message)
+    else await load()
+  }
+
   async function eliminar(producto: Producto) {
     if (!window.confirm(`¿Borrar lógicamente "${producto.nombre}"?`)) return
     setError(null)
@@ -160,15 +168,20 @@ export function Productos() {
                   {disponible && (
                     <button onClick={() => void marcarVendido(producto)}>Marcar vendido</button>
                   )}
+                  {isAdmin && producto.estado === 'vendido' && !deleted && (
+                    <button className="secondary" onClick={() => void devolver(producto)}>
+                      Devolver
+                    </button>
+                  )}
                   {canManage && disponible && (
-                    <>
-                      <Link className="button secondary" to={`/productos/${producto.id}/editar`}>
-                        Editar
-                      </Link>
-                      <button className="secondary" onClick={() => void eliminar(producto)}>
-                        Borrar
-                      </button>
-                    </>
+                    <Link className="button secondary" to={`/productos/${producto.id}/editar`}>
+                      Editar
+                    </Link>
+                  )}
+                  {canManage && !deleted && (disponible || isAdmin) && (
+                    <button className="secondary" onClick={() => void eliminar(producto)}>
+                      Borrar
+                    </button>
                   )}
                   {canManage && !deleted && (
                     <Link className="button ghost" to={`/productos/${producto.id}/visibilidad`}>

@@ -122,8 +122,9 @@ UNIQUE (producto_id, rol)     WHERE rol IS NOT NULL
 ```text
 actualizar_producto(p_id, p_nombre, p_descripcion, p_precio)  -- dueño/admin, no vendido/borrado
 marcar_vendido(p_id)                                          -- visible, atómico, sold_by = auth.uid()
-eliminar_producto(p_id)                                       -- dueño/admin, no vendido/borrado
+eliminar_producto(p_id)                                       -- admin: disponible o vendido; dueño: solo disponible
 actualizar_imagen_producto(p_id, p_imagen_path)               -- dueño/admin, no vendido/borrado
+devolver_producto(p_id)                                       -- solo admin; vendido -> disponible
 ```
 
 `productos` no tiene privilegios `UPDATE`/`DELETE` para `authenticated`; las
