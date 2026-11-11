@@ -267,6 +267,11 @@ as $$
     end;
 $$;
 
+-- Elimina overloads antiguos de intentos previos: CREATE OR REPLACE no
+-- reemplaza una función si cambia el tipo de un parámetro.
+drop function if exists private.log_audit(text, text, text, jsonb) cascade;
+drop function if exists private.log_audit(text, text, uuid, jsonb) cascade;
+
 create or replace function private.log_audit(
     p_entidad    text,
     p_accion     text,
@@ -279,7 +284,7 @@ security definer
 set search_path = ''
 as $$
     insert into public.audit_log (actor_id, entidad, entidad_id, accion, payload)
-    values (private.actor_actual(), p_entidad, p_accion, p_entidad_id, p_payload);
+    values (private.actor_actual(), p_entidad, p_accion, p_entidad_id::uuid, p_payload);
 $$;
 
 -- =====================================================================
