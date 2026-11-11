@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
@@ -15,6 +15,13 @@ export function AdminUsuarios() {
   const [drafts, setDrafts] = useState<Record<string, Rol>>({})
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [newEmail, setNewEmail] = useState('')
+  const [newNombre, setNewNombre] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [mode, setMode] = useState<'password' | 'invite'>('password')
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [createMessage, setCreateMessage] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -78,13 +85,65 @@ export function AdminUsuarios() {
     else await load()
   }
 
+  async function crearUsuario(event: FormEvent) {
+    event.preventDefault()
+    setCreateError(null)
+    setCreateMessage(null)
+
+    if (!newEmail.trim()) {
+      setCreateError('El correo es obligatorio.')
+      return
+    }
+
+    if (mode === 'password' && newPassword.length < 8) {
+      setCreateError('La contraseña debe tener al menos 8 caracteres.')
+      return
+    }
+
+    setCreating(true)
+    const { error: invokeError } = await supabase.functions.invoke('admin-users', {
+      body: {
+        email: newEmail.trim(),
+        nombre: newNombre.trim(),
+        password: mode === 'password' ? newPassword : undefined,
+      },
+    })
+
+    if (invokeError) {
+      let message = invokeError.message
+      const context = (invokeError as { context?: Response }).context
+      if (context) {
+        try {
+          const payload = await context.json()
+          if (payload?.error) message = String(payload.error)
+        } catch {
+          // Sin cuerpo JSON; se queda el mensaje original.
+        }
+      }
+      setCreateError(message)
+      setCreating(false)
+      return
+    }
+
+    setCreateMessage(
+      mode === 'password'
+        ? `Usuario ${newEmail.trim()} creado. Actívalo y asígnale un rol.`
+        : `Invitación enviada a ${newEmail.trim()}.`,
+    )
+    setNewEmail('')
+    setNewNombre('')
+    setNewPassword('')
+    setCreating(false)
+    await load()
+  }
+
   return (
     <section>
       <div className="page-head">
         <div>
           <h1>Usuarios</h1>
           <p className="muted">
-            Activa cuentas y asigna roles. Las invitaciones se envían desde el Dashboard de Supabase.
+            Agrega usuarios, actívalos y asigna roles.
           </p>
         </div>
         <button className="secondary" onClick={() => void load()}>
@@ -94,14 +153,90 @@ export function AdminUsuarios() {
 
       {error && <p className="error">{error}</p>}
 
-      <div className="card">
-        <h2>Invitar usuario</h2>
+      <form className="card form" onSubmit={crearUsuario}>
+        <h2>Agregar usuario</h2>
         <p className="muted">
-          Las cuentas se crean desde el Dashboard de Supabase: no hay registro público y el frontend
-          no puede usar la service_role. Después vuelve aquí, pulsa Refrescar, activa la cuenta y
-          asígnale un rol.
+          Se crea en Supabase Auth y queda pendiente. Después actívalo y asígnale un rol.
         </p>
-        <a className="button" href={dashboardUsersUrl} target="_blank" rel="noreferrer">
+
+        <label>
+          Correo
+          <input
+            type="email"
+            value={newEmail}
+            onChange={(event) => setNewEmail(event.target.value)}
+            required
+          />
+        </label>
+
+        <label>
+          Nombre
+          <input
+            value={newNombre}
+            onChange={(event) => setNewNombre(event.target.value)}
+            placeholder="Nombre visible"
+          />
+        </label>
+
+        <div className="row wrap">
+          <label className="inline">
+            <input
+              type="radio"
+              name="modo"
+              checked={mode === 'password'}
+              onChange={() => setMode('password')}
+            />
+            Crear con contraseña
+          </label>
+          <label className="inline">
+            <input
+              type="radio"
+              name="modo"
+              checked={mode === 'invite'}
+              onChange={() => setMode('invite')}
+            />
+            Invitar por correo
+          </label>
+        </div>
+
+        {mode === 'password' && (
+          <label>
+            Contraseña
+            <input
+              type="password"
+              minLength={8}
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              required
+            />
+          </label>
+        )}
+
+        {createError && <p className="error">{createError}</p>}
+        {createMessage && <p className="muted">{createMessage}</p>}
+
+        <div className="row">
+          <button type="submit" disabled={creating}>
+            {creating
+              ? 'Creando…'
+              : mode === 'password'
+                ? 'Crear usuario'
+                : 'Enviar invitación'}
+          </button>
+        </div>
+
+        <p className="muted small">
+          Requiere la Edge Function <code>admin-users</code> desplegada. Si no está, usa la
+          alternativa del Dashboard.
+        </p>
+      </form>
+
+      <div className="card">
+        <h2>Alternativa: Dashboard</h2>
+        <p className="muted">
+          Si la Edge Function no está desplegada, invita desde Supabase y vuelve a Refrescar.
+        </p>
+        <a className="button secondary" href={dashboardUsersUrl} target="_blank" rel="noreferrer">
           Abrir invitaciones en Supabase
         </a>
       </div>

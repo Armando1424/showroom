@@ -18,6 +18,8 @@ manual en iPad/Excel y el aviso por WhatsApp.
 showroom/
 ├── frontend/                  # React + Vite + TS, HashRouter
 ├── supabase/
+│   ├── functions/
+│   │   └── admin-users/index.ts  # Edge Function para crear usuarios
 │   ├── migrations/
 │   │   ├── 0001_init.sql      # tablas, RLS, triggers, RPCs, grants
 │   │   ├── 0002_imagen.sql    # imagen obligatoria + bucket privado
@@ -63,6 +65,22 @@ Detalle completo en [docs/modelo-datos.md](docs/modelo-datos.md).
 - La purga física elimina también el objeto del bucket.
 - Para aplicar: ejecutar `supabase/migrations/0002_imagen.sql` después de
   `0001_init.sql`.
+
+## Agregar usuarios
+
+La app tiene **Usuarios → Agregar usuario**. El formulario llama a la Edge
+Function `admin-users`, que corre en Supabase con la `service_role` del lado
+servidor y valida que quien llama sea admin. Nunca expone esa clave al
+navegador.
+
+- **Crear con contraseña**: usuario confirmado; comparte la contraseña.
+- **Invitar por correo**: Supabase envía la invitación; el usuario define su
+  contraseña (requiere Site URL/Redirect correctos).
+
+Despliegue de la función: ver
+[docs/edge-function-usuarios.md](docs/edge-function-usuarios.md). Sin la
+función desplegada, usa la alternativa del Dashboard que aparece en la misma
+página.
 
 ## Seguridad (resumen)
 
@@ -137,8 +155,11 @@ La guía paso a paso está en [docs/puesta-en-marcha.md](docs/puesta-en-marcha.m
 4. Ejecutar `0001_init.sql` y después `0002_imagen.sql` en Supabase.
 5. Authentication → Email: **desactivar signups**.
 6. Site URL y Redirect URLs: `https://armando1424.github.io/showroom/`.
-7. Ejecutar `seed-admin` una vez (`workflow_dispatch`).
-8. Invitar usuarios desde el Dashboard y activarlos/asignar roles en la app.
+7. Ejecutar `Deploy functions` para publicar `admin-users` (necesita
+   `SUPABASE_ACCESS_TOKEN`).
+8. Ejecutar `seed-admin` una vez (`workflow_dispatch`).
+9. Crear usuarios desde **Usuarios → Agregar usuario** o desde el Dashboard,
+   y activarlos/asignar roles en la app.
 
 ## Purga
 
