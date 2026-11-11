@@ -1,3 +1,4 @@
+# Purga diaria en dos etapas (7 y 30 días).
 name: Purge
 
 on:

@@ -66,7 +66,21 @@ def main() -> None:
 
     user_id = user["id"]
 
-    # 2. Activar el perfil (modo sistema: el trigger BEFORE UPDATE está exento).
+    # 2. Asegurar la contraseña y el email confirmado, también si el usuario
+    #    ya existía con otra contraseña.
+    updated = requests.put(
+        f"{url}/auth/v1/admin/users/{user_id}",
+        headers=headers,
+        json={
+            "password": password,
+            "email_confirm": True,
+            "user_metadata": {"nombre": nombre},
+        },
+        timeout=60,
+    )
+    updated.raise_for_status()
+
+    # 3. Activar el perfil (modo sistema: el trigger BEFORE UPDATE está exento).
     profile = requests.post(
         f"{url}/rest/v1/profiles",
         headers={**headers, "Prefer": "resolution=merge-duplicates,return=representation"},
