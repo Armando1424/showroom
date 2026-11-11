@@ -23,6 +23,7 @@ export interface Producto {
   descripcion: string | null
   precio: number | null
   estado: 'disponible' | 'vendido'
+  imagen_path: string
   created_by: string
   updated_by: string | null
   sold_by: string | null

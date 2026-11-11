@@ -16,11 +16,17 @@ contenido de:
 
 ```text
 supabase/migrations/0001_init.sql
+supabase/migrations/0002_imagen.sql
 ```
+
+`0002_imagen.sql` añade `imagen_path` (NOT NULL), el bucket privado
+`productos` y sus políticas. Si tienes productos de prueba sin imagen, la
+migración lo dirá; bórralos y vuelve a ejecutarla.
 
 El bloque de reset del inicio está comentado; no lo uses en producción.
 Comprobar que no hay errores y que existe el trigger `on_auth_user_created` en
-`auth.users`.
+`auth.users`. Después ejecutar `supabase/verify.sql` y
+`supabase/verify_imagen.sql`.
 
 ## 2. Auth
 

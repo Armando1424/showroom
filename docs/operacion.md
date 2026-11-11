@@ -23,7 +23,8 @@
   1. borrado lógico de vendidos con `sold_at` anterior a `PURGE_LOGICAL_DAYS`
      (7 por defecto);
   2. purga física de borrados con `deleted_at` anterior a
-     `PURGE_PHYSICAL_DAYS` (30 por defecto, es decir, día 37 desde la venta).
+     `PURGE_PHYSICAL_DAYS` (30 por defecto, es decir, día 37 desde la venta);
+     además borra el objeto de la imagen del bucket `productos`.
   El script solo borra; el trigger `AFTER DELETE` audita la purga.
 
 ## GitHub Pages
@@ -51,8 +52,10 @@
 
 ## Imágenes
 
-Fuera de alcance de la Fase 1. Cuando se incorporen, usar **Supabase Storage**
-con políticas por bucket y no exponer rutas privadas en el catálogo.
+Bucket privado `productos` en Supabase Storage. La ruta es
+`<producto_id>/<archivo>` y el acceso se resuelve con URLs firmadas + RLS.
+La purga física elimina la imagen. La migración `0002_imagen.sql` crea el
+bucket, las políticas y la RPC `actualizar_imagen_producto`.
 
 ## Primer admin
 

@@ -18,8 +18,12 @@ manual en iPad/Excel y el aviso por WhatsApp.
 showroom/
 ├── frontend/                  # React + Vite + TS, HashRouter
 ├── supabase/
-│   └── migrations/
-│       └── 0001_init.sql      # tablas, RLS, triggers, RPCs, grants
+│   ├── migrations/
+│   │   ├── 0001_init.sql      # tablas, RLS, triggers, RPCs, grants
+│   │   └── 0002_imagen.sql    # imagen obligatoria + bucket privado
+│   ├── reset.sql
+│   ├── verify.sql
+│   └── verify_imagen.sql
 ├── scripts/
 │   ├── seed_admin.py          # primer admin (service_role, manual)
 │   └── purge.py               # dos etapas (7 / 30 días)
@@ -40,11 +44,23 @@ showroom/
 |---|---|
 | `profiles` | Perfil 1:1 con `auth.users`; `activo=false` hasta que un admin lo active. |
 | `user_roles` | Roles `admin`, `proveedor`, `vendedor`; un usuario puede tener varios. |
-| `productos` | Producto único; estado `disponible`/`vendido`; borrado lógico. |
+| `productos` | Producto único; estado `disponible`/`vendido`; **imagen obligatoria**; borrado lógico. |
 | `product_visibility` | Lista blanca por usuario (`user_id`) **o** por rol (`rol`). |
 | `audit_log` | Historial inmutable escrito solo por triggers. |
 
 Detalle completo en [docs/modelo-datos.md](docs/modelo-datos.md).
+
+## Imágenes
+
+- Cada producto exige una imagen (`imagen_path NOT NULL`).
+- Bucket **privado** `productos` en Supabase Storage; ruta
+  `<producto_id>/<timestamp>.<ext>`.
+- El frontend sube la imagen al crear/editar y muestra URLs firmadas (1 hora).
+- RLS de Storage: admin ve todo; el dueño y los usuarios con visibilidad ven
+  la imagen del producto. Un vendedor sin visibilidad no puede firmar la URL.
+- La purga física elimina también el objeto del bucket.
+- Para aplicar: ejecutar `supabase/migrations/0002_imagen.sql` después de
+  `0001_init.sql`.
 
 ## Seguridad (resumen)
 
@@ -116,7 +132,7 @@ La guía paso a paso está en [docs/puesta-en-marcha.md](docs/puesta-en-marcha.m
 3. Secrets: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_URL`,
    `SUPABASE_SERVICE_ROLE_KEY`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`.
    Variable opcional: `SEED_ADMIN_NOMBRE`.
-4. Ejecutar la migración en Supabase.
+4. Ejecutar `0001_init.sql` y después `0002_imagen.sql` en Supabase.
 5. Authentication → Email: **desactivar signups**.
 6. Site URL y Redirect URLs: `https://armando1424.github.io/showroom/`.
 7. Ejecutar `seed-admin` una vez (`workflow_dispatch`).

@@ -8,6 +8,8 @@ const ROLES: Rol[] = ['admin', 'proveedor', 'vendedor']
 
 export function AdminUsuarios() {
   const { isAdmin } = useAuth()
+  const projectRef = new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]
+  const dashboardUsersUrl = `https://supabase.com/dashboard/project/${projectRef}/auth/users`
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [roles, setRoles] = useState<UserRole[]>([])
   const [drafts, setDrafts] = useState<Record<string, Rol>>({})
@@ -91,6 +93,18 @@ export function AdminUsuarios() {
       </div>
 
       {error && <p className="error">{error}</p>}
+
+      <div className="card">
+        <h2>Invitar usuario</h2>
+        <p className="muted">
+          Las cuentas se crean desde el Dashboard de Supabase: no hay registro público y el frontend
+          no puede usar la service_role. Después vuelve aquí, pulsa Refrescar, activa la cuenta y
+          asígnale un rol.
+        </p>
+        <a className="button" href={dashboardUsersUrl} target="_blank" rel="noreferrer">
+          Abrir invitaciones en Supabase
+        </a>
+      </div>
 
       {loading ? (
         <p className="muted">Cargando…</p>

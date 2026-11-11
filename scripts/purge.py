@@ -62,7 +62,7 @@ def main() -> None:
         headers=headers,
         params={
             "deleted_at": f"lt.{physical_cutoff}",
-            "select": "id",
+            "select": "id,imagen_path",
         },
         timeout=120,
     )
@@ -70,13 +70,36 @@ def main() -> None:
     stage2_data = stage2.json()
     stage2_ids = stage2_data if isinstance(stage2_data, list) else []
 
+    image_paths = [
+        row["imagen_path"]
+        for row in stage2_ids
+        if isinstance(row, dict) and row.get("imagen_path")
+    ]
+
+    if image_paths:
+        removed = requests.delete(
+            f"{url}/storage/v1/object/productos",
+            headers={
+                "apikey": key,
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+            },
+            json={"prefixes": image_paths},
+            timeout=120,
+        )
+        if removed.status_code >= 400:
+            print(
+                f"AVISO: no se pudieron borrar {len(image_paths)} imágenes: "
+                f"{removed.status_code} {removed.text}"
+            )
+
     print(
         f"Etapa 1: {len(stage1_ids)} productos con borrado lógico "
         f"(vendidos antes de {logical_cutoff})."
     )
     print(
         f"Etapa 2: {len(stage2_ids)} productos purgados físicamente "
-        f"(borrados antes de {physical_cutoff})."
+        f"(borrados antes de {physical_cutoff}); imágenes: {len(image_paths)}."
     )
 
 

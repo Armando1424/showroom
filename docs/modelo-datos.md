@@ -54,6 +54,7 @@ roles.
 | `descripcion` | `text` | nullable |
 | `precio` | `numeric(12,2)` | **nullable**, `>= 0` |
 | `estado` | `text` | `disponible` / `vendido` |
+| `imagen_path` | `text` | **NOT NULL**; `<producto_id>/<archivo>` |
 | `created_by`, `updated_by` | `uuid` | "who", sin FK |
 | `sold_by`, `sold_at` | `uuid`, `timestamptz` | consistentes con `estado` |
 | `deleted_at`, `deleted_by` | `timestamptz`, `uuid` | borrado lógico |
@@ -61,6 +62,18 @@ roles.
 
 Índices parciales: `(sold_at) WHERE deleted_at IS NULL` y
 `(deleted_at) WHERE deleted_at IS NOT NULL`.
+
+### Imágenes (Storage)
+
+- Bucket `productos` **privado**.
+- Ruta: `<producto_id>/<timestamp>.<ext>`; el primer segmento debe ser el id
+  del producto (CHECK).
+- Políticas en `storage.objects`:
+  - `SELECT`: admin o `can_see_product(<id>)`.
+  - `INSERT`: admin o proveedor activo sobre un id nuevo o propio.
+  - `UPDATE`/`DELETE`: admin o dueño.
+- El frontend usa `createSignedUrl` (1 h); nunca hay URLs públicas.
+- La purga física borra el objeto del bucket.
 
 ### `product_visibility`
 
@@ -110,6 +123,7 @@ UNIQUE (producto_id, rol)     WHERE rol IS NOT NULL
 actualizar_producto(p_id, p_nombre, p_descripcion, p_precio)  -- dueño/admin, no vendido/borrado
 marcar_vendido(p_id)                                          -- visible, atómico, sold_by = auth.uid()
 eliminar_producto(p_id)                                       -- dueño/admin, no vendido/borrado
+actualizar_imagen_producto(p_id, p_imagen_path)               -- dueño/admin, no vendido/borrado
 ```
 
 `productos` no tiene privilegios `UPDATE`/`DELETE` para `authenticated`; las

@@ -329,3 +329,35 @@ textarea {
 .roles {
   margin: 0.5rem 0;
 }
+
+.product-media {
+  margin: -1rem -1rem 0.75rem;
+  border-radius: 10px 10px 0 0;
+  overflow: hidden;
+  background: #eef1f6;
+}
+
+.product-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #eef1f6;
+}
+
+.product-img.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.preview {
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #eef1f6;
+}

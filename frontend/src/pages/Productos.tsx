@@ -11,6 +11,7 @@ function money(value: number | null): string {
 export function Productos() {
   const { session, isAdmin, isProveedor } = useAuth()
   const [productos, setProductos] = useState<Producto[]>([])
+  const [imagenes, setImagenes] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [includeDeleted, setIncludeDeleted] = useState(false)
@@ -29,8 +30,32 @@ export function Productos() {
     }
 
     const { data, error: queryError } = await query
-    if (queryError) setError(queryError.message)
-    else setProductos((data ?? []) as Producto[])
+    if (queryError) {
+      setError(queryError.message)
+      setLoading(false)
+      return
+    }
+
+    const products = (data ?? []) as Producto[]
+    setProductos(products)
+
+    // URLs firmadas: el bucket es privado y RLS decide quién puede leer.
+    const entries = await Promise.all(
+      products
+        .filter((product) => Boolean(product.imagen_path))
+        .map(async (product) => {
+          try {
+            const { data: signed } = await supabase.storage
+              .from('productos')
+              .createSignedUrl(product.imagen_path, 3600)
+            return [product.id, signed?.signedUrl ?? ''] as const
+          } catch {
+            return [product.id, ''] as const
+          }
+        }),
+    )
+
+    setImagenes(Object.fromEntries(entries))
     setLoading(false)
   }, [isAdmin, includeDeleted])
 
@@ -103,6 +128,19 @@ export function Productos() {
 
             return (
               <article key={producto.id} className={`card product ${deleted ? 'deleted' : ''}`}>
+                <div className="product-media">
+                  {imagenes[producto.id] ? (
+                    <img
+                      className="product-img"
+                      src={imagenes[producto.id]}
+                      alt={producto.nombre}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="product-img placeholder">Sin imagen</div>
+                  )}
+                </div>
+
                 <div className="row between">
                   <h2>{producto.nombre}</h2>
                   <span className={`status ${producto.estado}`}>{producto.estado}</span>
