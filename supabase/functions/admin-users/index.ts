@@ -35,6 +35,8 @@ Deno.serve(async (request: Request) => {
     return json({ error: 'No autenticado' }, 401)
   }
 
+  const token = authorization.slice('Bearer '.length)
+
   const userClient = createClient(url, anonKey, {
     global: { headers: { Authorization: authorization } },
     auth: { persistSession: false, autoRefreshToken: false },
@@ -43,7 +45,7 @@ Deno.serve(async (request: Request) => {
   const {
     data: { user },
     error: userError,
-  } = await userClient.auth.getUser()
+  } = await userClient.auth.getUser(token)
 
   if (userError || !user) {
     return json({ error: 'Sesión inválida' }, 401)
