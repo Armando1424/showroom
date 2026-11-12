@@ -1,0 +1,58 @@
+name: Diagnose database
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  query:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query functions and migrations
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+
+          token = os.environ["TOKEN"]
+          ref = "tojdcyzdeigiynvvvrwz"
+          url = f"https://api.supabase.com/v1/projects/{ref}/database/query"
+
+          queries = {
+              "functions": """
+                  select n.nspname as schema, p.proname as name,
+                         pg_get_function_identity_arguments(p.oid) as args,
+                         pg_get_userbyid(p.proowner) as owner,
+                         has_function_privilege('authenticated', p.oid, 'execute') as auth_exec
+                  from pg_proc p
+                  join pg_namespace n on n.oid = p.pronamespace
+                  where n.nspname in ('public', 'private')
+                    and p.proname in ('devolver_producto', 'eliminar_producto', 'marcar_vendido', 'actualizar_producto')
+                  order by 1, 2
+              """,
+              "migrations": """
+                  select version, name
+                  from supabase_migrations.schema_migrations
+                  order by version
+              """,
+          }
+
+          for label, sql in queries.items():
+              body = json.dumps({"query": sql}).encode()
+              request = urllib.request.Request(
+                  url, data=body,
+                  headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                  method="POST",
+              )
+              print(f"===== {label} =====")
+              try:
+                  with urllib.request.urlopen(request, timeout=60) as response:
+                      print(response.read().decode())
+              except Exception as exc:
+                  print("ERROR:", exc)
+                  if hasattr(exc, "read"):
+                      print(exc.read().decode())
+          PY
