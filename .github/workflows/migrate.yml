@@ -1,0 +1,69 @@
+name: Apply SQL migration
+
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "SQL file to apply"
+        required: true
+        default: "supabase/migrations/0003_admin_devolucion.sql"
+
+permissions:
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply file
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          FILE: ${{ inputs.file }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+
+          token = os.environ["TOKEN"]
+          path = os.environ["FILE"]
+          ref = "tojdcyzdeigiynvvvrwz"
+          url = f"https://api.supabase.com/v1/projects/{ref}/database/query"
+          sql = open(path, encoding="utf-8").read()
+
+          body = json.dumps({"query": sql}).encode()
+          request = urllib.request.Request(
+              url, data=body,
+              headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+              method="POST",
+          )
+
+          try:
+              with urllib.request.urlopen(request, timeout=120) as response:
+                  print("OK:", response.read().decode())
+          except Exception as exc:
+              print("ERROR:", exc)
+              if hasattr(exc, "read"):
+                  print(exc.read().decode())
+              raise
+          PY
+
+      - name: Reload PostgREST schema cache
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+
+          token = os.environ["TOKEN"]
+          url = "https://api.supabase.com/v1/projects/tojdcyzdeigiynvvvrwz/database/query"
+          body = json.dumps({"query": "notify pgrst, 'reload schema';"}).encode()
+          request = urllib.request.Request(
+              url, data=body,
+              headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+              method="POST",
+          )
+
+          with urllib.request.urlopen(request, timeout=60) as response:
+              print("reload:", response.read().decode())
+          PY
