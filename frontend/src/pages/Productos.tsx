@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
@@ -8,6 +8,14 @@ function money(value: number | null): string {
   return value == null ? '—' : value.toFixed(2)
 }
 
+function normalize(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
 export function Productos() {
   const { session, isAdmin, isProveedor } = useAuth()
   const [productos, setProductos] = useState<Producto[]>([])
@@ -15,6 +23,7 @@ export function Productos() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [includeDeleted, setIncludeDeleted] = useState(false)
+  const [query, setQuery] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -62,6 +71,16 @@ export function Productos() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const visibles = useMemo(() => {
+    const needle = normalize(query)
+
+    if (!needle) return productos
+
+    return productos.filter((producto) =>
+      normalize(`${producto.nombre} ${producto.descripcion ?? ''}`).includes(needle),
+    )
+  }, [productos, query])
 
   async function marcarVendido(producto: Producto) {
     if (!window.confirm(`¿Marcar "${producto.nombre}" como vendido?`)) return
@@ -119,6 +138,32 @@ export function Productos() {
 
       {error && <p className="error">{error}</p>}
 
+      <div className="search-bar">
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Buscar por nombre o descripción…"
+          aria-label="Buscar productos"
+        />
+        {query && (
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => setQuery('')}
+            aria-label="Limpiar búsqueda"
+          >
+            Limpiar
+          </button>
+        )}
+      </div>
+
+      {query && !loading && productos.length > 0 && (
+        <p className="muted small">
+          {visibles.length} de {productos.length} productos
+        </p>
+      )}
+
       {loading ? (
         <p className="muted">Cargando…</p>
       ) : productos.length === 0 ? (
@@ -126,9 +171,16 @@ export function Productos() {
           <p>No hay productos visibles para tu usuario.</p>
           {(isAdmin || isProveedor) && <Link to="/nuevo">Crear el primero</Link>}
         </div>
+      ) : visibles.length === 0 ? (
+        <div className="card">
+          <p>No hay productos que coincidan con “{query}”.</p>
+          <button className="secondary" onClick={() => setQuery('')}>
+            Limpiar búsqueda
+          </button>
+        </div>
       ) : (
         <div className="grid">
-          {productos.map((producto) => {
+          {visibles.map((producto) => {
             const owner = producto.created_by === session?.user.id
             const canManage = isAdmin || owner
             const disponible = producto.estado === 'disponible' && !producto.deleted_at

@@ -361,3 +361,19 @@ textarea {
   border-radius: 8px;
   background: #eef1f6;
 }
+
+.search-bar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.search-bar input {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-bar button {
+  flex-shrink: 0;
+}
