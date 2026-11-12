@@ -23,8 +23,12 @@ export function Login() {
   return (
     <div className="center">
       <form className="card narrow" onSubmit={onSubmit}>
-        <h1>Showroom</h1>
-        <p className="muted">Acceso privado. Sin registro público.</p>
+        <h1>
+          Showroom <span className="badge beta">beta</span>
+        </h1>
+        <p className="muted">
+          Acceso privado. Sin registro público. Versión beta en pruebas.
+        </p>
 
         <label>
           Correo

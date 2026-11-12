@@ -10,7 +10,9 @@ export function Layout() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">Showroom</div>
+        <div className="brand">
+          Showroom <span className="badge beta">beta</span>
+        </div>
         <nav className="nav">
           <NavLink to="/" end>
             Productos
@@ -34,6 +36,11 @@ export function Layout() {
       <main className="content">
         <Outlet />
       </main>
+      <footer className="app-footer">
+        <span className="badge beta">beta</span>
+        Versión beta: funciones y datos en prueba. El catálogo puede cambiar
+        mientras se valida el flujo completo.
+      </footer>
     </div>
   )
 }

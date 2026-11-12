@@ -377,3 +377,21 @@ textarea {
 .search-bar button {
   flex-shrink: 0;
 }
+
+.badge.beta {
+  background: #fff3d6;
+  color: #8a5a00;
+  border: 1px solid #f0d089;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.app-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1.25rem 1.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
