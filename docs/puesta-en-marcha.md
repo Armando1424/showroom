@@ -120,3 +120,15 @@ una vez al mes o hacer un push. Ver `docs/operacion.md`.
 - [ ] Un vendedor sin visibilidad no ve el producto y `marcar_vendido` falla.
 - [ ] Un vendedor con visibilidad marca vendido y `sold_by` es su UUID.
 - [ ] `audit_log` registra la venta, el grant y la activación.
+
+
+## Aplicar migraciones pendientes
+
+Si una función RPC no aparece (`Could not find the function ... in the schema
+cache`), la migración que la crea no está aplicada. Hay un workflow manual:
+
+1. GitHub → Actions → **Apply SQL migration** → Run workflow.
+2. Campo `file`: `supabase/migrations/0003_admin_devolucion.sql`.
+3. El workflow aplica el SQL y recarga la caché de PostgREST.
+
+Verificar con **Diagnose database** (lista las funciones y sus permisos).
