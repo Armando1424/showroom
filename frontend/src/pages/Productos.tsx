@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { useProveedor } from '../proveedor/ProveedorProvider'
 import { supabase } from '../lib/supabase'
-import type { Producto } from '../types'
+import type { MetodoPago, Producto } from '../types'
 
 function money(value: number | null): string {
   return value == null ? '—' : value.toFixed(2)
@@ -16,78 +17,99 @@ function normalize(value: string): string {
     .trim()
 }
 
+type Tab = 'disponible' | 'vendido'
+
 export function Productos() {
   const { session, isAdmin, isProveedor } = useAuth()
+  const { proveedorId, requiereSeleccion } = useProveedor()
+
   const [productos, setProductos] = useState<Producto[]>([])
-  const [imagenes, setImagenes] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [includeDeleted, setIncludeDeleted] = useState(false)
   const [query, setQuery] = useState('')
+  const [tab, setTab] = useState<Tab>('disponible')
+  const [detalle, setDetalle] = useState<Producto | null>(null)
+  const [detalleImagen, setDetalleImagen] = useState<string>('')
+  const [venta, setVenta] = useState<Producto | null>(null)
+  const [vendiendo, setVendiendo] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
 
-    let query = supabase
+    const { data, error: queryError } = await supabase
       .from('productos')
       .select('*')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
-    if (!(isAdmin && includeDeleted)) {
-      query = query.is('deleted_at', null)
-    }
-
-    const { data, error: queryError } = await query
     if (queryError) {
       setError(queryError.message)
       setLoading(false)
       return
     }
 
-    const products = (data ?? []) as Producto[]
-    setProductos(products)
-
-    // URLs firmadas: el bucket es privado y RLS decide quién puede leer.
-    const entries = await Promise.all(
-      products
-        .filter((product) => Boolean(product.imagen_path))
-        .map(async (product) => {
-          try {
-            const { data: signed } = await supabase.storage
-              .from('productos')
-              .createSignedUrl(product.imagen_path, 3600)
-            return [product.id, signed?.signedUrl ?? ''] as const
-          } catch {
-            return [product.id, ''] as const
-          }
-        }),
-    )
-
-    setImagenes(Object.fromEntries(entries))
+    setProductos((data ?? []) as Producto[])
     setLoading(false)
-  }, [isAdmin, includeDeleted])
+  }, [])
 
   useEffect(() => {
     void load()
   }, [load])
 
+  // El admin ve todo por RLS; aquí se limita al proveedor elegido.
+  const delProveedor = useMemo(() => {
+    if (!isAdmin) return productos
+    if (!proveedorId) return []
+    return productos.filter((producto) => producto.proveedor_id === proveedorId)
+  }, [productos, isAdmin, proveedorId])
+
   const visibles = useMemo(() => {
     const needle = normalize(query)
-
-    if (!needle) return productos
-
-    return productos.filter((producto) =>
+    const base = delProveedor.filter((producto) =>
+      tab === 'vendido' ? producto.estado === 'vendido' : producto.estado === 'disponible',
+    )
+    if (!needle) return base
+    return base.filter((producto) =>
       normalize(`${producto.nombre} ${producto.descripcion ?? ''}`).includes(needle),
     )
-  }, [productos, query])
+  }, [delProveedor, tab, query])
 
-  async function marcarVendido(producto: Producto) {
-    if (!window.confirm(`¿Marcar "${producto.nombre}" como vendido?`)) return
+  const conteo = useMemo(
+    () => ({
+      disponible: delProveedor.filter((p) => p.estado === 'disponible').length,
+      vendido: delProveedor.filter((p) => p.estado === 'vendido').length,
+    }),
+    [delProveedor],
+  )
+
+  async function abrirDetalle(producto: Producto) {
+    setDetalle(producto)
+    setDetalleImagen('')
+
+    if (!producto.imagen_path) return
+    const { data: signed } = await supabase.storage
+      .from('productos')
+      .createSignedUrl(producto.imagen_path, 3600)
+    setDetalleImagen(signed?.signedUrl ?? '')
+  }
+
+  async function vender(producto: Producto, metodo: MetodoPago) {
+    setVendiendo(true)
     setError(null)
-    const { error: rpcError } = await supabase.rpc('marcar_vendido', { p_id: producto.id })
-    if (rpcError) setError(rpcError.message)
-    else await load()
+    const { error: rpcError } = await supabase.rpc('marcar_vendido', {
+      p_id: producto.id,
+      p_metodo_pago: metodo,
+      p_precio: producto.precio,
+    })
+    setVendiendo(false)
+    if (rpcError) {
+      setError(rpcError.message)
+      return
+    }
+    setVenta(null)
+    setDetalle(null)
+    await load()
   }
 
   async function devolver(producto: Producto) {
@@ -95,15 +117,21 @@ export function Productos() {
     setError(null)
     const { error: rpcError } = await supabase.rpc('devolver_producto', { p_id: producto.id })
     if (rpcError) setError(rpcError.message)
-    else await load()
+    else {
+      setDetalle(null)
+      await load()
+    }
   }
 
-  async function eliminar(producto: Producto) {
-    if (!window.confirm(`¿Borrar lógicamente "${producto.nombre}"?`)) return
-    setError(null)
-    const { error: rpcError } = await supabase.rpc('eliminar_producto', { p_id: producto.id })
-    if (rpcError) setError(rpcError.message)
-    else await load()
+  if (requiereSeleccion) {
+    return (
+      <section>
+        <h1>Productos</h1>
+        <div className="card">
+          <p>Elige un proveedor en la barra superior para ver sus productos.</p>
+        </div>
+      </section>
+    )
   }
 
   return (
@@ -113,30 +141,44 @@ export function Productos() {
           <h1>Productos</h1>
           <p className="muted">
             {isAdmin
-              ? 'Ves todos los productos, incluidos los pendientes de purga.'
+              ? 'Productos del proveedor seleccionado.'
               : isProveedor
-                ? 'Ves tus productos y los que un administrador te haya asignado.'
-                : 'Ves solo los productos para los que tienes visibilidad.'}
+                ? 'Tus productos.'
+                : 'Productos de tu proveedor.'}
           </p>
         </div>
         <div className="row">
-          {isAdmin && (
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={includeDeleted}
-                onChange={(event) => setIncludeDeleted(event.target.checked)}
-              />
-              Incluir borrados
-            </label>
-          )}
           <button onClick={() => void load()} className="secondary">
             Refrescar
           </button>
+          {(isAdmin || isProveedor) && (
+            <Link className="button" to="/nuevo" title="Nuevo producto">
+              +
+            </Link>
+          )}
         </div>
       </div>
 
       {error && <p className="error">{error}</p>}
+
+      <div className="tabs" role="tablist">
+        <button
+          role="tab"
+          aria-selected={tab === 'disponible'}
+          className={tab === 'disponible' ? 'tab active' : 'tab'}
+          onClick={() => setTab('disponible')}
+        >
+          Disponibles ({conteo.disponible})
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === 'vendido'}
+          className={tab === 'vendido' ? 'tab active' : 'tab'}
+          onClick={() => setTab('vendido')}
+        >
+          Vendidos ({conteo.vendido})
+        </button>
+      </div>
 
       <div className="search-bar">
         <input
@@ -147,103 +189,146 @@ export function Productos() {
           aria-label="Buscar productos"
         />
         {query && (
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => setQuery('')}
-            aria-label="Limpiar búsqueda"
-          >
+          <button type="button" className="secondary" onClick={() => setQuery('')}>
             Limpiar
           </button>
         )}
       </div>
 
-      {query && !loading && productos.length > 0 && (
-        <p className="muted small">
-          {visibles.length} de {productos.length} productos
-        </p>
-      )}
-
       {loading ? (
         <p className="muted">Cargando…</p>
-      ) : productos.length === 0 ? (
-        <div className="card">
-          <p>No hay productos visibles para tu usuario.</p>
-          {(isAdmin || isProveedor) && <Link to="/nuevo">Crear el primero</Link>}
-        </div>
       ) : visibles.length === 0 ? (
         <div className="card">
-          <p>No hay productos que coincidan con “{query}”.</p>
-          <button className="secondary" onClick={() => setQuery('')}>
-            Limpiar búsqueda
-          </button>
+          <p>
+            {tab === 'disponible'
+              ? 'No hay productos disponibles.'
+              : 'Todavía no hay ventas.'}
+          </p>
         </div>
       ) : (
-        <div className="grid">
+        <ul className="product-list">
           {visibles.map((producto) => {
             const owner = producto.created_by === session?.user.id
-            const canManage = isAdmin || owner
-            const disponible = producto.estado === 'disponible' && !producto.deleted_at
-            const deleted = Boolean(producto.deleted_at)
+            const puedeEditar = isAdmin || owner
 
             return (
-              <article key={producto.id} className={`card product ${deleted ? 'deleted' : ''}`}>
-                <div className="product-media">
-                  {imagenes[producto.id] ? (
-                    <img
-                      className="product-img"
-                      src={imagenes[producto.id]}
-                      alt={producto.nombre}
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="product-img placeholder">Sin imagen</div>
-                  )}
-                </div>
+              <li key={producto.id}>
+                <button className="product-row" onClick={() => void abrirDetalle(producto)}>
+                  <span className="product-row-name">{producto.nombre}</span>
+                  <span className="product-row-price">
+                    {tab === 'vendido'
+                      ? money(producto.precio_venta)
+                      : money(producto.precio)}
+                  </span>
+                  <span className="product-row-meta">
+                    {tab === 'vendido'
+                      ? `${producto.metodo_pago ?? '—'} · ${new Date(
+                          producto.sold_at ?? producto.updated_at,
+                        ).toLocaleDateString('es-MX')}`
+                      : new Date(producto.created_at).toLocaleDateString('es-MX')}
+                  </span>
+                  <span className="chevron" aria-hidden>
+                    ›
+                  </span>
+                </button>
 
-                <div className="row between">
-                  <h2>{producto.nombre}</h2>
-                  <span className={`status ${producto.estado}`}>{producto.estado}</span>
-                </div>
-
-                {producto.descripcion && <p>{producto.descripcion}</p>}
-                <p className="muted">Precio: {money(producto.precio)}</p>
-                <p className="muted small">
-                  Creado {new Date(producto.created_at).toLocaleDateString('es-MX')}
-                  {producto.sold_at &&
-                    ` · Vendido ${new Date(producto.sold_at).toLocaleDateString('es-MX')}`}
-                </p>
-
-                {deleted && <span className="badge danger">borrado lógico</span>}
-
-                <div className="row wrap actions">
-                  {disponible && (
-                    <button onClick={() => void marcarVendido(producto)}>Marcar vendido</button>
-                  )}
-                  {isAdmin && producto.estado === 'vendido' && !deleted && (
-                    <button className="secondary" onClick={() => void devolver(producto)}>
-                      Devolver
-                    </button>
-                  )}
-                  {canManage && disponible && (
-                    <Link className="button secondary" to={`/productos/${producto.id}/editar`}>
-                      Editar
-                    </Link>
-                  )}
-                  {canManage && !deleted && (disponible || isAdmin) && (
-                    <button className="secondary" onClick={() => void eliminar(producto)}>
-                      Borrar
-                    </button>
-                  )}
-                  {canManage && !deleted && (
-                    <Link className="button ghost" to={`/productos/${producto.id}/visibilidad`}>
-                      Visibilidad
-                    </Link>
-                  )}
-                </div>
-              </article>
+                {puedeEditar && tab === 'disponible' && (
+                  <Link
+                    className="row-edit"
+                    to={`/productos/${producto.id}/editar`}
+                    title="Editar"
+                  >
+                    Editar
+                  </Link>
+                )}
+              </li>
             )
           })}
+        </ul>
+      )}
+
+      {detalle && (
+        <div className="modal-backdrop" onClick={() => setDetalle(null)}>
+          <div className="modal" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-head">
+              <h2>{detalle.nombre}</h2>
+              <button className="link" onClick={() => setDetalle(null)} aria-label="Cerrar">
+                ✕
+              </button>
+            </div>
+
+            {detalleImagen ? (
+              <img className="detail-img" src={detalleImagen} alt={detalle.nombre} />
+            ) : (
+              <div className="detail-img placeholder">Sin imagen</div>
+            )}
+
+            {detalle.descripcion && <p>{detalle.descripcion}</p>}
+
+            <dl className="detail-grid">
+              <dt>Precio</dt>
+              <dd>{money(detalle.precio)}</dd>
+              <dt>Estado</dt>
+              <dd>{detalle.estado}</dd>
+              {detalle.estado === 'vendido' && (
+                <>
+                  <dt>Cobrado</dt>
+                  <dd>{money(detalle.precio_venta)}</dd>
+                  <dt>Método</dt>
+                  <dd>{detalle.metodo_pago ?? '—'}</dd>
+                  <dt>Fecha de venta</dt>
+                  <dd>
+                    {detalle.sold_at
+                      ? new Date(detalle.sold_at).toLocaleString('es-MX')
+                      : '—'}
+                  </dd>
+                </>
+              )}
+            </dl>
+
+            <div className="row wrap">
+              {detalle.estado === 'disponible' && (
+                <button onClick={() => setVenta(detalle)}>Vender</button>
+              )}
+              {detalle.estado === 'vendido' && (
+                <button className="secondary" onClick={() => void devolver(detalle)}>
+                  Devolver
+                </button>
+              )}
+              {(isAdmin || detalle.created_by === session?.user.id) &&
+                detalle.estado === 'disponible' && (
+                  <Link className="button ghost" to={`/productos/${detalle.id}/editar`}>
+                    Editar
+                  </Link>
+                )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {venta && (
+        <div className="modal-backdrop" onClick={() => setVenta(null)}>
+          <div className="modal small" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-head">
+              <h2>Cobrar “{venta.nombre}”</h2>
+              <button className="link" onClick={() => setVenta(null)} aria-label="Cerrar">
+                ✕
+              </button>
+            </div>
+
+            <p className="muted">
+              Importe: <strong>{money(venta.precio)}</strong>
+            </p>
+
+            <div className="row wrap">
+              <button disabled={vendiendo} onClick={() => void vender(venta, 'efectivo')}>
+                Efectivo
+              </button>
+              <button disabled={vendiendo} onClick={() => void vender(venta, 'tarjeta')}>
+                Tarjeta
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </section>

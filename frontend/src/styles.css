@@ -395,3 +395,279 @@ textarea {
   color: var(--muted);
   font-size: 0.8rem;
 }
+
+/* ---------- Navegación y selector de proveedor ---------- */
+
+.nav-add {
+  font-size: 1.25rem;
+  line-height: 1;
+  padding: 0 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  text-decoration: none;
+}
+
+.nav-add:hover {
+  background: var(--primary);
+  color: #fff;
+  text-decoration: none;
+}
+
+.proveedor-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: 0.5rem;
+}
+
+.proveedor-picker select {
+  max-width: 12rem;
+  padding: 0.25rem 0.4rem;
+}
+
+/* ---------- Pestañas ---------- */
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin: 1rem 0 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 0.5rem 0.75rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.tab.active {
+  color: var(--text);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+/* ---------- Lista de productos (sin imagen) ---------- */
+
+.product-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.product-list li {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.product-list li:last-child {
+  border-bottom: none;
+}
+
+.product-row {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  background: none;
+  border: none;
+  border-radius: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.product-row:hover {
+  background: var(--bg);
+}
+
+.product-row-name {
+  font-weight: 600;
+}
+
+.product-row-price {
+  font-variant-numeric: tabular-nums;
+}
+
+.product-row-meta {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.chevron {
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.row-edit {
+  padding: 0 0.9rem;
+  font-size: 0.85rem;
+}
+
+/* ---------- Modal y detalle ---------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 20, 28, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+}
+
+.modal {
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 1rem 1.1rem 1.2rem;
+  width: min(32rem, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+}
+
+.modal.small {
+  width: min(22rem, 100%);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.detail-img {
+  width: 100%;
+  max-height: 16rem;
+  object-fit: contain;
+  background: var(--bg);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.detail-img.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  color: var(--muted);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0.5rem 0 0.9rem;
+}
+
+.detail-grid dt {
+  color: var(--muted);
+}
+
+.detail-grid dd {
+  margin: 0;
+}
+
+/* ---------- Dinero ---------- */
+
+.totales {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.total-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.total-card strong {
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.total-card.highlight {
+  border-color: var(--primary);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.table th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.table tfoot td {
+  border-bottom: none;
+  font-weight: 600;
+}
+
+.table tr.strong td {
+  border-top: 2px solid var(--border);
+}
+
+/* ---------- Selector de imagen ---------- */
+
+.file-button {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.file-button input[type='file'] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.imagen-picker {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: 0;
+}
+
+.imagen-picker legend {
+  padding: 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}

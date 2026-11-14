@@ -88,15 +88,25 @@ y empieza desde 0004. Ya no hay que tocar la base a mano.
    tabla `ventas`.
 3. **`proveedor_id` se rellenó con `created_by`** para los productos existentes.
 
-## Pendiente de la UI
+## UI (implementada 2026-11-14)
 
-- [ ] Menú por rol y selector de proveedor para el admin.
-- [ ] Productos: dos pestañas (disponibles/vendidos), lista sin imagen, detalle al
-      hacer clic, botón `+`.
-- [ ] Venta: modal para elegir tarjeta/efectivo.
-- [ ] Dinero: selector día/semana/mes, tres totales y desglose por vendedor.
-- [ ] Usuarios: al crear, roles por defecto proveedor+vendedor y proveedor
-      obligatorio si solo se marca vendedor.
+- [x] Menú por rol y selector de proveedor para el admin (barra superior).
+- [x] Productos: pestañas Disponibles/Vendidos, lista **sin imagen**, detalle en
+      modal al hacer clic, botón `+` para agregar.
+- [x] Venta: modal con Efectivo / Tarjeta.
+- [x] Dinero: Hoy / Esta semana / Este mes, totales de tarjeta, efectivo y suma,
+      tabla de productos vendidos con vendedor y método, desglose por vendedor y
+      **descarga CSV**.
+- [x] Usuarios: roles por defecto proveedor+vendedor; si es solo vendedor, el
+      proveedor es obligatorio; se puede reasignar el proveedor por usuario.
+- [x] Imagen: botón "Tomar foto" (`capture="environment"`) además de la galería.
+
+## Historial de ventas
+
+`0005_ventas_historial.sql` añade `public.ventas`. Hoy hay un índice único que
+impide dos ventas activas del mismo producto, pero el modelo ya guarda cada
+operación: para vender varias veces el mismo artículo solo hay que quitar ese
+índice y el resto del flujo sigue igual.
 
 ## Preguntas abiertas
 

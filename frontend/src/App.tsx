@@ -6,6 +6,7 @@ import { Productos } from './pages/Productos'
 import { ProductoFormPage } from './pages/ProductoFormPage'
 import { Visibilidad } from './pages/Visibilidad'
 import { AdminUsuarios } from './pages/AdminUsuarios'
+import { Dinero } from './pages/Dinero'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
       <Route element={<RequireAuth />}>
         <Route element={<Layout />}>
           <Route index element={<Productos />} />
+          <Route path="dinero" element={<Dinero />} />
 
           <Route
             path="nuevo"

@@ -2,12 +2,14 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
+import { useProveedor } from '../proveedor/ProveedorProvider'
 import type { Producto } from '../types'
 
 export function ProductoFormPage() {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
   const { isAdmin, isProveedor, session } = useAuth()
+  const { proveedorId } = useProveedor()
   const navigate = useNavigate()
 
   const [nombre, setNombre] = useState('')
@@ -154,6 +156,11 @@ export function ProductoFormPage() {
       return
     }
 
+    if (!isEdit && isAdmin && !proveedorId) {
+      setError('Elige un proveedor en la barra superior antes de crear el producto.')
+      return
+    }
+
     if (!isEdit && !imagenFile) {
       setError('La imagen es obligatoria.')
       return
@@ -186,6 +193,7 @@ export function ProductoFormPage() {
         descripcion: description,
         precio: price,
         imagen_path: imagePath,
+        proveedor_id: isAdmin ? proveedorId : session?.user.id,
       })
 
       if (insertError) {
@@ -287,15 +295,30 @@ export function ProductoFormPage() {
           />
         </label>
 
-        <label>
-          Imagen {isEdit ? '(reemplazar, opcional)' : '(obligatoria)'}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={onFileChange}
-            required={!isEdit}
-          />
-        </label>
+        <fieldset className="imagen-picker">
+          <legend>
+            Imagen {isEdit ? '(reemplazar, opcional)' : '(obligatoria)'}
+          </legend>
+          <div className="row wrap">
+            <label className="button secondary file-button">
+              Tomar foto
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={onFileChange}
+              />
+            </label>
+            <label className="button ghost file-button">
+              Elegir de galería
+              <input type="file" accept="image/*" onChange={onFileChange} />
+            </label>
+          </div>
+          <p className="muted small">
+            En el teléfono, “Tomar foto” abre la cámara directamente. Si el equipo no
+            tiene cámara, el sistema ofrece el selector de archivos.
+          </p>
+        </fieldset>
 
         {imagenPreview ? (
           <img className="preview" src={imagenPreview} alt="Vista previa del producto" />

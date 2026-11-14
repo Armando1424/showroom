@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { supabase } from '../lib/supabase'
+import { useProveedor } from '../proveedor/ProveedorProvider'
 import type { Profile, Rol, UserRole } from '../types'
 
 const ROLES: Rol[] = ['admin', 'proveedor', 'vendedor']
@@ -20,6 +21,9 @@ export function AdminUsuarios() {
   const [newPassword, setNewPassword] = useState('')
   const [mode, setMode] = useState<'password' | 'invite'>('password')
   const [creating, setCreating] = useState(false)
+  const [rolesNuevo, setRolesNuevo] = useState<'ambos' | 'proveedor' | 'vendedor'>('ambos')
+  const [proveedorNuevo, setProveedorNuevo] = useState('')
+  const { proveedores } = useProveedor()
   const [createError, setCreateError] = useState<string | null>(null)
   const [createMessage, setCreateMessage] = useState<string | null>(null)
 
@@ -85,6 +89,16 @@ export function AdminUsuarios() {
     else await load()
   }
 
+  async function asignarProveedor(userId: string, proveedorId: string) {
+    setError(null)
+    const { error: rpcError } = await supabase.rpc('asignar_proveedor', {
+      p_user: userId,
+      p_proveedor: proveedorId || null,
+    })
+    if (rpcError) setError(rpcError.message)
+    else await load()
+  }
+
   async function crearUsuario(event: FormEvent) {
     event.preventDefault()
     setCreateError(null)
@@ -100,8 +114,13 @@ export function AdminUsuarios() {
       return
     }
 
+    if (rolesNuevo === 'vendedor' && !proveedorNuevo) {
+      setCreateError('Si el usuario es solo vendedor, indica a qué proveedor pertenece.')
+      return
+    }
+
     setCreating(true)
-    const { error: invokeError } = await supabase.functions.invoke('admin-users', {
+    const { data: creado, error: invokeError } = await supabase.functions.invoke('admin-users', {
       body: {
         email: newEmail.trim(),
         nombre: newNombre.trim(),
@@ -125,14 +144,38 @@ export function AdminUsuarios() {
       return
     }
 
+    const creadoId = (creado as { user_id?: string } | null)?.user_id ?? null
+    if (creadoId) {
+      const rolesAAsignar =
+        rolesNuevo === 'ambos' ? ['proveedor', 'vendedor'] : [rolesNuevo]
+
+      for (const rol of rolesAAsignar) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({ user_id: creadoId, rol })
+        if (roleError) setCreateError(`Usuario creado, pero no se pudo asignar ${rol}: ${roleError.message}`)
+      }
+
+      if (rolesNuevo === 'vendedor' && proveedorNuevo) {
+        const { error: assignError } = await supabase.rpc('asignar_proveedor', {
+          p_user: creadoId,
+          p_proveedor: proveedorNuevo,
+        })
+        if (assignError) setCreateError(`Usuario creado, pero no se pudo asignar el proveedor: ${assignError.message}`)
+      }
+    }
+
     setCreateMessage(
       mode === 'password'
-        ? `Usuario ${newEmail.trim()} creado. Actívalo y asígnale un rol.`
+        ? `Usuario ${newEmail.trim()} creado con roles: ${
+            rolesNuevo === 'ambos' ? 'proveedor, vendedor' : rolesNuevo
+          }. Actívalo para que pueda entrar.`
         : `Invitación enviada a ${newEmail.trim()}.`,
     )
     setNewEmail('')
     setNewNombre('')
     setNewPassword('')
+    setProveedorNuevo('')
     setCreating(false)
     await load()
   }
@@ -198,6 +241,38 @@ export function AdminUsuarios() {
             Invitar por correo
           </label>
         </div>
+
+        <label>
+          Roles
+          <select
+            value={rolesNuevo}
+            onChange={(event) =>
+              setRolesNuevo(event.target.value as 'ambos' | 'proveedor' | 'vendedor')
+            }
+          >
+            <option value="ambos">Proveedor + vendedor (por defecto)</option>
+            <option value="proveedor">Solo proveedor</option>
+            <option value="vendedor">Solo vendedor</option>
+          </select>
+        </label>
+
+        {rolesNuevo === 'vendedor' && (
+          <label>
+            Proveedor asignado
+            <select
+              value={proveedorNuevo}
+              onChange={(event) => setProveedorNuevo(event.target.value)}
+              required
+            >
+              <option value="">— elegir —</option>
+              {proveedores.map((proveedor) => (
+                <option key={proveedor.id} value={proveedor.id}>
+                  {proveedor.nombre || proveedor.email || proveedor.id.slice(0, 8)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         {mode === 'password' && (
           <label>
@@ -295,6 +370,18 @@ export function AdminUsuarios() {
                   <button className="secondary" onClick={() => void addRole(profile.id)}>
                     Añadir rol
                   </button>
+                  <select
+                    value={profile.proveedor_id ?? ''}
+                    onChange={(event) => void asignarProveedor(profile.id, event.target.value)}
+                    title="Proveedor asignado"
+                  >
+                    <option value="">sin proveedor</option>
+                    {proveedores.map((proveedor) => (
+                      <option key={proveedor.id} value={proveedor.id}>
+                        {proveedor.nombre || proveedor.email || proveedor.id.slice(0, 8)}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     className={profile.activo ? 'danger' : ''}
                     onClick={() => void toggleActivo(profile)}
