@@ -1,0 +1,51 @@
+name: Apply pending migrations
+
+# Aplica sola las migraciones nuevas de supabase/migrations al hacer push a main.
+# Lleva registro en private.applied_migrations: cada archivo se ejecuta una vez.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/*.sql"
+      - "scripts/apply_migrations.py"
+      - ".github/workflows/migrate-auto.yml"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Solo listar lo pendiente, sin aplicar"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comprobar configuración
+        id: check
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Falta SUPABASE_ACCESS_TOKEN"
+            exit 1
+          fi
+
+      - name: Aplicar migraciones pendientes
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            python3 scripts/apply_migrations.py --dry-run
+          else
+            python3 scripts/apply_migrations.py
+          fi
