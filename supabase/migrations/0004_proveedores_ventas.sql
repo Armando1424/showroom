@@ -27,6 +27,14 @@ alter table public.productos
     add column if not exists metodo_pago text,
     add column if not exists precio_venta numeric(12,2);
 
+-- Backfill: las ventas anteriores no tienen método de pago; se asumen efectivo
+-- y se copia el precio del producto para que el resumen tenga importe.
+update public.productos
+   set metodo_pago  = 'efectivo',
+       precio_venta = coalesce(precio, 0)
+ where estado = 'vendido'
+   and metodo_pago is null;
+
 alter table public.productos
     drop constraint if exists productos_metodo_pago_check,
     add constraint productos_metodo_pago_check
