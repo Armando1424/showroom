@@ -39,7 +39,8 @@ export function Layout() {
                 <option value="">— elegir —</option>
                 {proveedores.map((proveedor) => (
                   <option key={proveedor.id} value={proveedor.id}>
-                    {proveedor.nombre || proveedor.email || proveedor.id.slice(0, 8)}
+                    {proveedor.nombre || 'sin nombre'}
+                    {proveedor.email ? ` — ${proveedor.email}` : ''}
                   </option>
                 ))}
               </select>

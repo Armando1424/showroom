@@ -267,7 +267,8 @@ export function AdminUsuarios() {
               <option value="">— elegir —</option>
               {proveedores.map((proveedor) => (
                 <option key={proveedor.id} value={proveedor.id}>
-                  {proveedor.nombre || proveedor.email || proveedor.id.slice(0, 8)}
+                  {proveedor.nombre || 'sin nombre'}
+                  {proveedor.email ? ` — ${proveedor.email}` : ''}
                 </option>
               ))}
             </select>
@@ -378,7 +379,8 @@ export function AdminUsuarios() {
                     <option value="">sin proveedor</option>
                     {proveedores.map((proveedor) => (
                       <option key={proveedor.id} value={proveedor.id}>
-                        {proveedor.nombre || proveedor.email || proveedor.id.slice(0, 8)}
+                        {proveedor.nombre || 'sin nombre'}
+                        {proveedor.email ? ` — ${proveedor.email}` : ''}
                       </option>
                     ))}
                   </select>
