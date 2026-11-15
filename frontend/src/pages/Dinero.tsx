@@ -198,7 +198,8 @@ export function Dinero() {
           {rango !== 'day' && periodos.length > 0 && (
             <div className="card">
               <h2>Por {rango === 'week' ? 'semana' : 'mes'}</h2>
-              <table className="table">
+              <div className="table-wrap">
+                <table className="table">
                 <thead>
                   <tr>
                     <th>Periodo</th>
@@ -220,6 +221,7 @@ export function Dinero() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
 
@@ -228,7 +230,8 @@ export function Dinero() {
             {detalle.length === 0 ? (
               <p className="muted">No hay ventas en este periodo.</p>
             ) : (
-              <table className="table">
+              <div className="table-wrap">
+                <table className="table">
                 <thead>
                   <tr>
                     <th>Fecha</th>
@@ -267,6 +270,7 @@ export function Dinero() {
                   </tr>
                 </tfoot>
               </table>
+              </div>
             )}
             {devueltas.length > 0 && (
               <p className="muted small">
@@ -281,6 +285,7 @@ export function Dinero() {
               {vendedores.length === 0 ? (
                 <p className="muted">Sin ventas por vendedor en este periodo.</p>
               ) : (
+                <div className="table-wrap">
                 <table className="table">
                   <thead>
                     <tr>
@@ -303,6 +308,7 @@ export function Dinero() {
                     ))}
                   </tbody>
                 </table>
+              </div>
               )}
             </div>
           )}

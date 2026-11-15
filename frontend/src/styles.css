@@ -671,3 +671,68 @@ textarea {
   color: var(--muted);
   font-size: 0.9rem;
 }
+
+/* ---------- Desbordes en pantallas pequeñas ---------- */
+
+/* Evita que una tabla ancha empuje toda la página a la derecha. */
+.table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.table-wrap .table {
+  min-width: 34rem;
+}
+
+.table-wrap::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* Las pestañas también se desplazan en lugar de cortarse. */
+.tabs {
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: thin;
+}
+
+.tab {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* Blindaje: nada debe provocar scroll horizontal en la página. */
+body {
+  overflow-x: hidden;
+}
+
+.content {
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 520px) {
+  .product-row {
+    grid-template-columns: 1fr auto auto;
+    gap: 0.5rem;
+  }
+
+  .product-row-meta {
+    display: none;
+  }
+
+  .totales {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .total-card.highlight {
+    grid-column: 1 / -1;
+  }
+}
