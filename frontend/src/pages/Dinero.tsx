@@ -37,7 +37,8 @@ export function Dinero() {
   const { isAdmin, isProveedor } = useAuth()
   const { proveedorId, requiereSeleccion } = useProveedor()
 
-  const [rango, setRango] = useState<Rango>('day')
+  // Arranca en el mes: es el rango donde casi siempre hay datos.
+  const [rango, setRango] = useState<Rango>('month')
   const [detalle, setDetalle] = useState<VentaDetalle[]>([])
   const [periodos, setPeriodos] = useState<ResumenPeriodo[]>([])
   const [vendedores, setVendedores] = useState<ResumenVendedor[]>([])
