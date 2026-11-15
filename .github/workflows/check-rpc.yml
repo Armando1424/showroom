@@ -34,12 +34,14 @@ jobs:
           claims = json.dumps({"sub": sub, "role": "authenticated"}).replace("'", "''")
           print("claims:", q(f"select set_config('request.jwt.claims', '{claims}', false);"))
 
-          for name, sql in {
+          # set_config y la llamada deben ir en la MISMA petición (misma sesión)
+          for name, body in {
               "reporte_ventas": "select * from public.reporte_ventas('2025-01-01'::timestamptz, now(), null);",
               "resumen_ventas": "select * from public.resumen_ventas('2025-01-01'::timestamptz, now(), 'month', null);",
               "ventas_por_vendedor": "select * from public.ventas_por_vendedor('2025-01-01'::timestamptz, now(), null);",
               "mi_proveedor_id": "select private.mi_proveedor_id() as proveedor, private.is_admin() as admin;",
           }.items():
+              sql = f"select set_config('request.jwt.claims', '{claims}', false); " + body
               print(f"=== {name} ===")
               try:
                   print(q(sql))
