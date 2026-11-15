@@ -1,0 +1,51 @@
+name: Check dinero (temporal)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Simular consultas de la UI
+        env:
+          TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+
+          token = os.environ["TOKEN"]
+          url = "https://api.supabase.com/v1/projects/tojdcyzdeigiynvvvrwz/database/query"
+          sub = "34b4c30d-086f-4736-84aa-81b3b4c2f1d1"
+
+          def q(sql):
+              body = json.dumps({"query": sql}).encode()
+              req = urllib.request.Request(
+                  url, data=body,
+                  headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+                  method="POST",
+              )
+              with urllib.request.urlopen(req, timeout=60) as r:
+                  return r.read().decode()
+
+          claims = json.dumps({"sub": sub, "role": "authenticated"}).replace("'", "''")
+          prefix = f"select set_config('request.jwt.claims', '{claims}', false); "
+
+          print("=== ahora / zona ===")
+          print(q("select now() as ahora, current_setting('TimeZone') as zona;"))
+
+          print("=== fila de ventas ===")
+          print(q("select id, producto_id, proveedor_id, vendedor_id, metodo_pago, monto, vendido_at from public.ventas;"))
+
+          hoy = "(date_trunc('day', now() at time zone 'America/Mexico_City') at time zone 'America/Mexico_City')"
+          mes = "(date_trunc('month', now() at time zone 'America/Mexico_City') at time zone 'America/Mexico_City')"
+
+          for etiqueta, desde in (("HOY", hoy), ("MES", mes)):
+              print(f"=== reporte_ventas {etiqueta} ===")
+              print(q(prefix + f"select * from public.reporte_ventas({desde}, now(), '{sub}'::uuid);"))
+              print(f"=== resumen_ventas {etiqueta} ===")
+              print(q(prefix + f"select * from public.resumen_ventas({desde}, now(), 'day', '{sub}'::uuid);"))
+          PY
