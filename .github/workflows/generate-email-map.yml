@@ -1,0 +1,23 @@
+name: Generate email map
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  map:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generar y probar el mapa de correos
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          WILL_TEST_PASSWORD: ${{ secrets.WILL_TEST_PASSWORD }}
+          CRISTIAN_TEST_PASSWORD: ${{ secrets.CRISTIAN_TEST_PASSWORD }}
+          SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+        run: python3 scripts/generate_email_map.py --test
