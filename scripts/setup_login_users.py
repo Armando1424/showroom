@@ -216,6 +216,40 @@ def main() -> None:
         else:
             print(f"  ✗ LOGIN POR CORREO: falló ({status}) {data}")
 
+        # 5. Simular la resolución del username (nombre o parte local),
+        #    igual que la Edge Function login.
+        resolved = None
+        status, rows = call(
+            "GET",
+            f"{url}/rest/v1/profiles?select=email&nombre=ilike.{urllib.parse.quote(term)}",
+            service,
+        )
+        if status == 200 and isinstance(rows, list) and len(rows) == 1:
+            resolved = rows[0].get("email")
+        if not resolved:
+            status, rows = call(
+                "GET",
+                f"{url}/rest/v1/profiles?select=email&email=ilike."
+                f"{urllib.parse.quote(term + '@%')}",
+                service,
+            )
+            if status == 200 and isinstance(rows, list) and len(rows) == 1:
+                resolved = rows[0].get("email")
+
+        if not resolved:
+            print("  ⚠ LOGIN POR USUARIO (simulado): no se pudo resolver el username")
+        else:
+            status, data = call(
+                "POST",
+                f"{url}/auth/v1/token?grant_type=password",
+                anon,
+                {"email": resolved, "password": password},
+            )
+            if status == 200:
+                print("  ✓ LOGIN POR USUARIO (simulado): OK")
+            else:
+                print(f"  ✗ LOGIN POR USUARIO (simulado): falló ({status}) {data}")
+
 
 if __name__ == "__main__":
     main()

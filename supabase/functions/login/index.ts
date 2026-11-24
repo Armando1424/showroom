@@ -51,20 +51,44 @@ Deno.serve(async (request: Request) => {
   let email = identifier.toLowerCase()
 
   if (!isEmail) {
-    // Los usernames se guardan en minúsculas; el login no distingue mayúsculas.
+    // El login no distingue mayúsculas. Se resuelve, en orden:
+    // 1) profiles.username (migración 0010), 2) nombre exacto, 3) parte
+    // local del correo. Los fallbacks permiten desplegar la función antes
+    // de aplicar la migración.
     const admin = createClient(url, serviceKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     })
 
-    const { data: profile, error: lookupError } = await admin
+    const username = identifier.toLowerCase()
+    const pattern = username.replace(/[\\%_]/g, (char) => `\\${char}`)
+    let profile: { email?: string } | null = null
+
+    const byUsername = await admin
       .from('profiles')
       .select('email')
-      .eq('username', identifier.toLowerCase())
+      .eq('username', username)
       .maybeSingle()
 
-    if (lookupError) {
-      console.error('login: no se pudo resolver el username', lookupError.message)
-      return json({ error: 'No se pudo validar el usuario.' }, 500)
+    if (!byUsername.error && byUsername.data) {
+      profile = byUsername.data
+    }
+
+    if (!profile) {
+      const byName = await admin
+        .from('profiles')
+        .select('email')
+        .ilike('nombre', pattern)
+        .maybeSingle()
+      if (!byName.error && byName.data) profile = byName.data
+    }
+
+    if (!profile) {
+      const byLocalPart = await admin
+        .from('profiles')
+        .select('email')
+        .ilike('email', `${pattern}@%`)
+        .maybeSingle()
+      if (!byLocalPart.error && byLocalPart.data) profile = byLocalPart.data
     }
 
     if (!profile?.email) {
