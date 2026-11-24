@@ -9,8 +9,6 @@ const ROLES: Rol[] = ['admin', 'proveedor', 'vendedor']
 
 export function AdminUsuarios() {
   const { isAdmin } = useAuth()
-  const projectRef = new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split('.')[0]
-  const dashboardUsersUrl = `https://supabase.com/dashboard/project/${projectRef}/auth/users`
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [roles, setRoles] = useState<UserRole[]>([])
   const [drafts, setDrafts] = useState<Record<string, Rol>>({})
@@ -18,8 +16,8 @@ export function AdminUsuarios() {
   const [loading, setLoading] = useState(true)
   const [newEmail, setNewEmail] = useState('')
   const [newNombre, setNewNombre] = useState('')
+  const [newUsername, setNewUsername] = useState('')
   const [newPassword, setNewPassword] = useState('')
-  const [mode, setMode] = useState<'password' | 'invite'>('password')
   const [creating, setCreating] = useState(false)
   const [rolesNuevo, setRolesNuevo] = useState<'ambos' | 'proveedor' | 'vendedor'>('ambos')
   const [proveedorNuevo, setProveedorNuevo] = useState('')
@@ -118,12 +116,20 @@ export function AdminUsuarios() {
     setCreateError(null)
     setCreateMessage(null)
 
-    if (!newEmail.trim()) {
-      setCreateError('El correo es obligatorio.')
+    const username = newUsername.trim().toLowerCase()
+    if (!/^[a-z0-9._-]{2,30}$/.test(username)) {
+      setCreateError(
+        'El usuario es obligatorio y debe tener entre 2 y 30 caracteres: letras, números, punto, guion o guion bajo.',
+      )
       return
     }
 
-    if (mode === 'password' && newPassword.length < 8) {
+    if (!newEmail.trim()) {
+      setCreateError('El correo de contacto es obligatorio.')
+      return
+    }
+
+    if (newPassword.length < 8) {
       setCreateError('La contraseña debe tener al menos 8 caracteres.')
       return
     }
@@ -134,11 +140,12 @@ export function AdminUsuarios() {
     }
 
     setCreating(true)
+    const authEmail = `${username}@showroom.local`
     const { data: creado, error: invokeError } = await supabase.functions.invoke('admin-users', {
       body: {
-        email: newEmail.trim(),
+        email: authEmail,
         nombre: newNombre.trim(),
-        password: mode === 'password' ? newPassword : undefined,
+        password: newPassword,
       },
     })
 
@@ -167,17 +174,27 @@ export function AdminUsuarios() {
         })
         if (assignError) setCreateError(`Usuario creado, pero no se pudo asignar el proveedor: ${assignError.message}`)
       }
+
+      // El correo real es de contacto: el login usa <usuario>@showroom.local.
+      const { error: emailError } = await supabase
+        .from('profiles')
+        .update({ email: newEmail.trim().toLowerCase() })
+        .eq('id', creadoId)
+      if (emailError) {
+        setCreateError(
+          `Usuario creado, pero no se pudo guardar el correo de contacto: ${emailError.message}`,
+        )
+      }
     }
 
     setCreateMessage(
-      mode === 'password'
-        ? `Usuario ${newEmail.trim()} creado con roles: ${
-            rolesNuevo === 'ambos' ? 'proveedor, vendedor' : rolesNuevo
-          }. Actívalo para que pueda entrar.`
-        : `Invitación enviada a ${newEmail.trim()}.`,
+      `Usuario @${username} creado con roles: ${
+        rolesNuevo === 'ambos' ? 'proveedor, vendedor' : rolesNuevo
+      }. Entra con el usuario y la contraseña.`,
     )
     setNewEmail('')
     setNewNombre('')
+    setNewUsername('')
     setNewPassword('')
     setProveedorNuevo('')
     setCreating(false)
@@ -203,17 +220,21 @@ export function AdminUsuarios() {
       <form className="card form" onSubmit={crearUsuario}>
         <h2>Agregar usuario</h2>
         <p className="muted">
-          Se crea en Supabase Auth y queda pendiente. Después actívalo y asígnale un rol.
+          Se crea confirmado. Entra con el usuario; el correo es solo de contacto.
         </p>
 
         <label>
-          Correo
+          Usuario
           <input
-            type="email"
-            value={newEmail}
-            onChange={(event) => setNewEmail(event.target.value)}
+            value={newUsername}
+            onChange={(event) => setNewUsername(event.target.value)}
+            placeholder="ej. will"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             required
           />
+          <span className="muted small">No distingue mayúsculas. Es el login.</span>
         </label>
 
         <label>
@@ -225,26 +246,16 @@ export function AdminUsuarios() {
           />
         </label>
 
-        <div className="row wrap">
-          <label className="inline">
-            <input
-              type="radio"
-              name="modo"
-              checked={mode === 'password'}
-              onChange={() => setMode('password')}
-            />
-            Crear con contraseña
-          </label>
-          <label className="inline">
-            <input
-              type="radio"
-              name="modo"
-              checked={mode === 'invite'}
-              onChange={() => setMode('invite')}
-            />
-            Invitar por correo
-          </label>
-        </div>
+        <label>
+          Correo de contacto
+          <input
+            type="email"
+            value={newEmail}
+            onChange={(event) => setNewEmail(event.target.value)}
+            required
+          />
+          <span className="muted small">Solo lo ve el admin; no es el login.</span>
+        </label>
 
         <label>
           Roles
@@ -279,47 +290,30 @@ export function AdminUsuarios() {
           </label>
         )}
 
-        {mode === 'password' && (
-          <label>
-            Contraseña
-            <input
-              type="password"
-              minLength={8}
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-              required
-            />
-          </label>
-        )}
+        <label>
+          Contraseña
+          <input
+            type="password"
+            minLength={8}
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
+            required
+          />
+        </label>
 
         {createError && <p className="error">{createError}</p>}
         {createMessage && <p className="muted">{createMessage}</p>}
 
         <div className="row">
           <button type="submit" disabled={creating}>
-            {creating
-              ? 'Creando…'
-              : mode === 'password'
-                ? 'Crear usuario'
-                : 'Enviar invitación'}
+            {creating ? 'Creando…' : 'Crear usuario'}
           </button>
         </div>
 
         <p className="muted small">
-          Requiere la Edge Function <code>admin-users</code> desplegada. Si no está, usa la
-          alternativa del Dashboard.
+          Requiere la Edge Function <code>admin-users</code> desplegada.
         </p>
       </form>
-
-      <div className="card">
-        <h2>Alternativa: Dashboard</h2>
-        <p className="muted">
-          Si la Edge Function no está desplegada, invita desde Supabase y vuelve a Refrescar.
-        </p>
-        <a className="button secondary" href={dashboardUsersUrl} target="_blank" rel="noreferrer">
-          Abrir invitaciones en Supabase
-        </a>
-      </div>
 
       {loading ? (
         <p className="muted">Cargando…</p>

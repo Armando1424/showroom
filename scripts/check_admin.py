@@ -82,7 +82,11 @@ def main() -> int:
 
     query = urllib.parse.urlencode({"id": f"eq.{user_id}", "select": "id,nombre,email,activo"})
     status, profile = call("GET", f"{url}/rest/v1/profiles?{query}", service_headers)
-    print(f"Perfil:         {profile if status == 200 else f'ERROR {status} {profile}'}")
+    if status == 200 and isinstance(profile, list) and profile:
+        row = profile[0]
+        print(f"Perfil:         {row.get('nombre')} (activo={row.get('activo')})")
+    else:
+        print(f"Perfil:         ERROR {status} {profile}")
 
     query = urllib.parse.urlencode({"user_id": f"eq.{user_id}", "select": "rol"})
     status, roles = call("GET", f"{url}/rest/v1/user_roles?{query}", service_headers)
