@@ -74,8 +74,8 @@ export function Login() {
         </button>
 
         <p className="muted small">
-          Entra con tu usuario o tu correo. El usuario no distingue mayúsculas; la contraseña sí.
-          Si no puedes entrar, pide a un administrador que te asigne una contraseña.
+          Entra con tu usuario o tu correo registrado. El usuario no distingue mayúsculas; la
+          contraseña sí. Si no puedes entrar, pide a un administrador que te asigne una contraseña.
         </p>
       </form>
     </div>

@@ -9,6 +9,7 @@ import {
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { EMAIL_HASH_TO_USERNAME } from './email-map'
 import type { Profile, Rol } from '../types'
 
 interface AuthContextValue {
@@ -28,6 +29,12 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+async function sha256Hex(value: string): Promise<string> {
+  const data = new TextEncoder().encode(value)
+  const digest = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -105,9 +112,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: 'Escribe tu usuario o correo y tu contraseña.' }
     }
 
-    // Login por usuario: Supabase Auth usa el correo interno
-    // <usuario>@showroom.local. El correo real vive en profiles.email.
-    const email = id.includes('@') ? id : `${id}@showroom.local`
+    // Login por usuario o por correo registrado. Supabase Auth usa el correo
+    // interno <usuario>@showroom.local; el correo real vive en profiles.email
+    // y se resuelve con un mapa de hashes (sin exponerlo en el bundle).
+    let email = `${id}@showroom.local`
+    if (id.includes('@')) {
+      const username = EMAIL_HASH_TO_USERNAME[await sha256Hex(id)]
+      if (!username) {
+        return { error: 'Ese correo no está habilitado para login. Usa tu usuario.' }
+      }
+      email = `${username}@showroom.local`
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (!error) return { error: null }
