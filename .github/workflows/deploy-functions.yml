@@ -46,4 +46,4 @@ jobs:
           supabase functions deploy admin-users \
             --project-ref tojdcyzdeigiynvvvrwz --yes
           supabase functions deploy login \
-            --project-ref tojdcyzdeigiynvvvrwz --yes
+            --project-ref tojdcyzdeigiynvvvrwz --no-verify-jwt --yes

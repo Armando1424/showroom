@@ -59,7 +59,8 @@ gh secret set SUPABASE_ACCESS_TOKEN --repo Armando1424/showroom
 
 3. Ejecutar el workflow **Deploy functions** (`workflow_dispatch`).
 
-El workflow despliega `admin-users` y `login`, y configura `SITE_URL`.
+El workflow despliega `admin-users` y `login` (este último sin verificación
+JWT), y configura `SITE_URL`.
 
 ### Opción B — CLI local
 
@@ -67,10 +68,14 @@ El workflow despliega `admin-users` y `login`, y configura `SITE_URL`.
 npm install -g supabase
 supabase login
 supabase functions deploy admin-users --project-ref tojdcyzdeigiynvvvrwz
-supabase functions deploy login --project-ref tojdcyzdeigiynvvvrwz
+supabase functions deploy login --project-ref tojdcyzdeigiynvvvrwz --no-verify-jwt
 supabase secrets set SITE_URL=https://armando1424.github.io/showroom/ \
   --project-ref tojdcyzdeigiynvvvrwz
 ```
+
+`login` es el endpoint público de acceso: debe desplegarse con **Verify JWT
+desactivado** (`--no-verify-jwt`). En el Dashboard, la función `login` tiene un
+interruptor **Verify JWT** que debe quedar apagado.
 
 ## Usarlo
 
