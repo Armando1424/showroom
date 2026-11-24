@@ -20,4 +20,5 @@ jobs:
           WILL_TEST_PASSWORD: ${{ secrets.WILL_TEST_PASSWORD }}
           CRISTIAN_TEST_PASSWORD: ${{ secrets.CRISTIAN_TEST_PASSWORD }}
           SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+          SEED_ADMIN_USERNAME: local.administrator
         run: python3 scripts/generate_email_map.py --test

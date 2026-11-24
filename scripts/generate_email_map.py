@@ -106,10 +106,11 @@ def main() -> None:
     if "--test" not in sys.argv:
         return
 
+    admin_username = os.environ.get("SEED_ADMIN_USERNAME", "local.administrator")
     passwords = {
         "will": os.environ.get("WILL_TEST_PASSWORD"),
         "cristian": os.environ.get("CRISTIAN_TEST_PASSWORD"),
-        "administrador": os.environ.get("SEED_ADMIN_PASSWORD"),
+        admin_username: os.environ.get("SEED_ADMIN_PASSWORD"),
     }
     anon_key = env("VITE_SUPABASE_ANON_KEY")
     anon = {"apikey": anon_key, "Content-Type": "application/json"}
