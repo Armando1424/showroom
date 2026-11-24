@@ -2,15 +2,6 @@ name: Setup login users
 
 on:
   workflow_dispatch:
-    inputs:
-      will_password:
-        description: Contraseña para will
-        required: true
-        default: Will123
-      cristian_password:
-        description: Contraseña para cristian
-        required: true
-        default: Cristian123
 
 permissions:
   contents: read
@@ -26,11 +17,9 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          WILL_PASSWORD: ${{ inputs.will_password }}
-          CRISTIAN_PASSWORD: ${{ inputs.cristian_password }}
+          WILL_PASSWORD: ${{ secrets.WILL_TEST_PASSWORD }}
+          CRISTIAN_PASSWORD: ${{ secrets.CRISTIAN_TEST_PASSWORD }}
         run: |
-          echo "::add-mask::$WILL_PASSWORD"
-          echo "::add-mask::$CRISTIAN_PASSWORD"
           python3 scripts/setup_login_users.py \
             --set "will=$WILL_PASSWORD" \
             --set "cristian=$CRISTIAN_PASSWORD"

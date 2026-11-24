@@ -83,7 +83,7 @@ navegador.
 - **Activar** confirma el correo en Auth además de marcar el perfil como
   activo, así que el login queda válido aunque el usuario se haya creado desde
   el Dashboard sin confirmar.
-- **Contraseña** permite al admin fijar una nueva contraseña (mínimo 8
+- **Contraseña** permite al admin fijar una nueva contraseña (mínimo 6
   caracteres) sin salir de la app.
 
 El login acepta **correo o usuario**; el usuario no distingue mayúsculas y la

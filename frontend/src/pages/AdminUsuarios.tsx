@@ -88,12 +88,12 @@ export function AdminUsuarios() {
     setError(null)
     setNotice(null)
     const password = window.prompt(
-      `Nueva contraseña para ${profile.nombre || profile.email || 'el usuario'} (mín. 8):`,
+      `Nueva contraseña para ${profile.nombre || profile.email || 'el usuario'} (mín. 6):`,
     )
     if (password === null) return
 
-    if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.')
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres.')
       return
     }
 
@@ -153,8 +153,8 @@ export function AdminUsuarios() {
       return
     }
 
-    if (mode === 'password' && newPassword.length < 8) {
-      setCreateError('La contraseña debe tener al menos 8 caracteres.')
+    if (mode === 'password' && newPassword.length < 6) {
+      setCreateError('La contraseña debe tener al menos 6 caracteres.')
       return
     }
 
@@ -334,7 +334,7 @@ export function AdminUsuarios() {
             Contraseña
             <input
               type="password"
-              minLength={8}
+              minLength={6}
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
               required

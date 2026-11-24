@@ -91,8 +91,8 @@ def parse_sets(values: list[str]) -> list[tuple[str, str]]:
             sys.exit(f"--set inválido: {value!r}; usa usuario=contraseña")
         term, password = value.split("=", 1)
         term = term.strip().lower()
-        if not term or len(password) < 8:
-            sys.exit(f"--set inválido para {term!r}: la contraseña debe tener 8+ caracteres")
+        if not term or len(password) < 6:
+            sys.exit(f"--set inválido para {term!r}: la contraseña debe tener 6+ caracteres")
         pairs.append((term, password))
     return pairs
 

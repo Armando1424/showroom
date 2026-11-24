@@ -21,7 +21,7 @@ comprueban lo necesario y usan la `service_role` solo del lado servidor.
 2. `auth.getUser()` válido.
 3. El llamador tiene `profiles.activo = true` y una fila `user_roles` con
    `rol = 'admin'`.
-4. El correo tiene formato válido, la contraseña (si se usa) tiene 8+
+4. El correo tiene formato válido, la contraseña (si se usa) tiene 6+
    caracteres y el username, si se envía, cumple `[a-z0-9._-]{2,30}`.
 
 Acciones (`action` en el cuerpo):
@@ -88,7 +88,7 @@ correo en Auth**, así que el usuario puede entrar aunque se haya creado desde
 el Dashboard sin “Auto Confirm User”.
 
 El botón **Contraseña** de cada usuario permite fijar una nueva contraseña
-(mínimo 8 caracteres) sin salir de la app.
+(mínimo 6 caracteres) sin salir de la app.
 
 ## Plan gratuito
 

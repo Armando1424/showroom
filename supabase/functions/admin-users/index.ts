@@ -141,8 +141,8 @@ Deno.serve(async (request: Request) => {
       return json({ error: 'Usuario inválido' }, 400)
     }
 
-    if (password.length < 8 || password.length > 256) {
-      return json({ error: 'La contraseña debe tener al menos 8 caracteres' }, 400)
+    if (password.length < 6 || password.length > 256) {
+      return json({ error: 'La contraseña debe tener al menos 6 caracteres' }, 400)
     }
 
     const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
@@ -195,8 +195,8 @@ Deno.serve(async (request: Request) => {
   }
 
   if (password) {
-    if (password.length < 8) {
-      return json({ error: 'La contraseña debe tener al menos 8 caracteres' }, 400)
+    if (password.length < 6) {
+      return json({ error: 'La contraseña debe tener al menos 6 caracteres' }, 400)
     }
 
     const { data, error } = await adminClient.auth.admin.createUser({
