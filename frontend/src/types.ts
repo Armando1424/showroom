@@ -5,6 +5,7 @@ export type MetodoPago = 'efectivo' | 'tarjeta'
 export interface Profile {
   id: string
   nombre: string
+  username: string | null
   email: string | null
   activo: boolean
   proveedor_id: string | null

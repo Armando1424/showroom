@@ -260,6 +260,34 @@ textarea {
   color: var(--text);
 }
 
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 4.6rem;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.25rem 0.45rem;
+  font-size: 0.8rem;
+  background: transparent;
+  color: var(--primary);
+  border-color: transparent;
+}
+
+.password-toggle:hover {
+  background: #eef1f6;
+  color: var(--primary-dark);
+}
+
 textarea {
   resize: vertical;
 }

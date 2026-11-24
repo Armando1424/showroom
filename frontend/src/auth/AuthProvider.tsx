@@ -20,7 +20,7 @@ interface AuthContextValue {
   isAdmin: boolean
   isProveedor: boolean
   isVendedor: boolean
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signIn: (identifier: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   refresh: () => Promise<void>
 }
@@ -99,9 +99,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loadProfile])
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error?.message ?? null }
+  const signIn = useCallback(async (identifier: string, password: string) => {
+    const id = identifier.trim()
+    if (!id || !password) {
+      return { error: 'Escribe tu correo o usuario y tu contraseña.' }
+    }
+
+    const { data, error } = await supabase.functions.invoke('login', {
+      body: { identifier: id, password },
+    })
+
+    if (error) {
+      let message = 'No se pudo iniciar sesión. Inténtalo de nuevo.'
+      const context = (error as { context?: Response }).context
+
+      if (context) {
+        try {
+          const payload = (await context.json()) as { error?: string }
+          if (payload?.error) message = payload.error
+        } catch {
+          // Sin cuerpo JSON; se queda el mensaje genérico.
+        }
+
+        // Si la Edge Function aún no está desplegada, el login por correo
+        // sigue funcionando con el cliente de Supabase.
+        if (context.status === 404 && id.includes('@')) {
+          const { error: authError } = await supabase.auth.signInWithPassword({
+            email: id,
+            password,
+          })
+          return { error: authError?.message ?? null }
+        }
+      }
+
+      return { error: message }
+    }
+
+    const session = data as { access_token?: string; refresh_token?: string } | null
+    if (!session?.access_token || !session.refresh_token) {
+      return { error: 'Respuesta de login inválida.' }
+    }
+
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    })
+
+    return { error: sessionError?.message ?? null }
   }, [])
 
   const signOut = useCallback(async () => {

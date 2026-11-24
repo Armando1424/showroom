@@ -8,8 +8,8 @@ manual en iPad/Excel y el aviso por WhatsApp.
 
 - **Frontend**: React + Vite + TypeScript, `HashRouter`, GitHub Pages.
 - **Backend**: Supabase (Postgres + RLS + RPCs `SECURITY DEFINER`).
-- **Auth**: Supabase Auth (email + password). Sin registro público; usuarios
-  creados por invitación desde el Dashboard.
+- **Auth**: Supabase Auth (correo o usuario + contraseña). Sin registro
+  público; usuarios creados y activados desde la app (Edge Function).
 - **Purga**: GitHub Actions (cron diario) con `service_role` desde secretos.
 
 ## Estructura
@@ -19,7 +19,8 @@ showroom/
 ├── frontend/                  # React + Vite + TS, HashRouter
 ├── supabase/
 │   ├── functions/
-│   │   └── admin-users/index.ts  # Edge Function para crear usuarios
+│   │   ├── admin-users/index.ts  # crear/activar usuarios y fijar contraseña
+│   │   └── login/index.ts        # login por correo o usuario
 │   ├── migrations/
 │   │   ├── 0001_init.sql      # tablas, RLS, triggers, RPCs, grants
 │   │   ├── 0002_imagen.sql    # imagen obligatoria + bucket privado
@@ -76,11 +77,20 @@ navegador.
 - **Crear con contraseña**: usuario confirmado; comparte la contraseña.
 - **Invitar por correo**: Supabase envía la invitación; el usuario define su
   contraseña (requiere Site URL/Redirect correctos).
+- **Usuario**: cada cuenta tiene un `username` único que no distingue
+  mayúsculas. Se puede indicar al crear; si se deja vacío, se genera del nombre
+  o de la parte local del correo.
+- **Activar** confirma el correo en Auth además de marcar el perfil como
+  activo, así que el login queda válido aunque el usuario se haya creado desde
+  el Dashboard sin confirmar.
+- **Contraseña** permite al admin fijar una nueva contraseña (mínimo 8
+  caracteres) sin salir de la app.
 
-Despliegue de la función: ver
-[docs/edge-function-usuarios.md](docs/edge-function-usuarios.md). Sin la
-función desplegada, usa la alternativa del Dashboard que aparece en la misma
-página.
+El login acepta **correo o usuario**; el usuario no distingue mayúsculas y la
+contraseña sí. Despliegue de las funciones: ver
+[docs/edge-function-usuarios.md](docs/edge-function-usuarios.md). Sin las
+funciones desplegadas, usa la alternativa del Dashboard que aparece en la
+misma página.
 
 ## Seguridad (resumen)
 
@@ -134,8 +144,9 @@ npm run dev
 
 Build de producción: `npm run build` (genera `frontend/dist`).
 
-Pantallas: login, lista de productos, alta/edición, marcar vendido, visibilidad y
-panel de usuarios/roles. HashRouter; base `/showroom/`.
+Pantallas: login (correo o usuario, con ver/ocultar contraseña), lista de
+productos, alta/edición, marcar vendido, visibilidad y panel de usuarios/roles.
+HashRouter; base `/showroom/`.
 
 ## URLs
 

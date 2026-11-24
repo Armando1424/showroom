@@ -18,6 +18,7 @@ export function AdminUsuarios() {
   const [loading, setLoading] = useState(true)
   const [newEmail, setNewEmail] = useState('')
   const [newNombre, setNewNombre] = useState('')
+  const [newUsername, setNewUsername] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [mode, setMode] = useState<'password' | 'invite'>('password')
   const [creating, setCreating] = useState(false)
@@ -26,6 +27,21 @@ export function AdminUsuarios() {
   const { proveedores } = useProveedor()
   const [createError, setCreateError] = useState<string | null>(null)
   const [createMessage, setCreateMessage] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  async function functionErrorMessage(error: unknown): Promise<string> {
+    let message = error instanceof Error ? error.message : 'Error inesperado.'
+    const context = (error as { context?: Response }).context
+    if (context) {
+      try {
+        const payload = (await context.json()) as { error?: string }
+        if (payload?.error) message = payload.error
+      } catch {
+        // Sin cuerpo JSON.
+      }
+    }
+    return message
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -59,15 +75,34 @@ export function AdminUsuarios() {
 
   async function toggleActivo(profile: Profile) {
     setError(null)
-    const { data, error: updateError } = await supabase
-      .from('profiles')
-      .update({ activo: !profile.activo })
-      .eq('id', profile.id)
-      .select('id')
+    setNotice(null)
+    const { error: updateError } = await supabase.functions.invoke('admin-users', {
+      body: { action: 'set-active', user_id: profile.id, activo: !profile.activo },
+    })
 
-    if (updateError) setError(updateError.message)
-    else if (!data || data.length === 0) setError('No se pudo actualizar el usuario.')
+    if (updateError) setError(await functionErrorMessage(updateError))
     else await load()
+  }
+
+  async function cambiarPassword(profile: Profile) {
+    setError(null)
+    setNotice(null)
+    const password = window.prompt(
+      `Nueva contraseña para ${profile.nombre || profile.email || 'el usuario'} (mín. 8):`,
+    )
+    if (password === null) return
+
+    if (password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres.')
+      return
+    }
+
+    const { error: updateError } = await supabase.functions.invoke('admin-users', {
+      body: { action: 'set-password', user_id: profile.id, password },
+    })
+
+    if (updateError) setError(await functionErrorMessage(updateError))
+    else setNotice(`Contraseña actualizada para ${profile.nombre || profile.email || 'el usuario'}.`)
   }
 
   async function addRole(userId: string) {
@@ -103,9 +138,18 @@ export function AdminUsuarios() {
     event.preventDefault()
     setCreateError(null)
     setCreateMessage(null)
+    setNotice(null)
 
     if (!newEmail.trim()) {
       setCreateError('El correo es obligatorio.')
+      return
+    }
+
+    const username = newUsername.trim().toLowerCase()
+    if (username && !/^[a-z0-9._-]{2,30}$/.test(username)) {
+      setCreateError(
+        'El usuario debe tener entre 2 y 30 caracteres: letras, números, punto, guion o guion bajo.',
+      )
       return
     }
 
@@ -124,27 +168,19 @@ export function AdminUsuarios() {
       body: {
         email: newEmail.trim(),
         nombre: newNombre.trim(),
+        username: username || undefined,
         password: mode === 'password' ? newPassword : undefined,
       },
     })
 
     if (invokeError) {
-      let message = invokeError.message
-      const context = (invokeError as { context?: Response }).context
-      if (context) {
-        try {
-          const payload = await context.json()
-          if (payload?.error) message = String(payload.error)
-        } catch {
-          // Sin cuerpo JSON; se queda el mensaje original.
-        }
-      }
-      setCreateError(message)
+      setCreateError(await functionErrorMessage(invokeError))
       setCreating(false)
       return
     }
 
     const creadoId = (creado as { user_id?: string } | null)?.user_id ?? null
+    const creadoUsername = (creado as { username?: string | null } | null)?.username ?? null
     if (creadoId) {
       const rolesAAsignar =
         rolesNuevo === 'ambos' ? ['proveedor', 'vendedor'] : [rolesNuevo]
@@ -165,15 +201,17 @@ export function AdminUsuarios() {
       }
     }
 
+    const usernameTexto = creadoUsername ? ` (@${creadoUsername})` : ''
     setCreateMessage(
       mode === 'password'
-        ? `Usuario ${newEmail.trim()} creado con roles: ${
+        ? `Usuario ${newEmail.trim()}${usernameTexto} creado con roles: ${
             rolesNuevo === 'ambos' ? 'proveedor, vendedor' : rolesNuevo
           }. Actívalo para que pueda entrar.`
-        : `Invitación enviada a ${newEmail.trim()}.`,
+        : `Invitación enviada a ${newEmail.trim()}${usernameTexto}.`,
     )
     setNewEmail('')
     setNewNombre('')
+    setNewUsername('')
     setNewPassword('')
     setProveedorNuevo('')
     setCreating(false)
@@ -195,6 +233,7 @@ export function AdminUsuarios() {
       </div>
 
       {error && <p className="error">{error}</p>}
+      {notice && <p className="muted">{notice}</p>}
 
       <form className="card form" onSubmit={crearUsuario}>
         <h2>Agregar usuario</h2>
@@ -219,6 +258,21 @@ export function AdminUsuarios() {
             onChange={(event) => setNewNombre(event.target.value)}
             placeholder="Nombre visible"
           />
+        </label>
+
+        <label>
+          Usuario
+          <input
+            value={newUsername}
+            onChange={(event) => setNewUsername(event.target.value)}
+            placeholder="ej. will (opcional)"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+          />
+          <span className="muted small">
+            Si lo dejas vacío, se genera del nombre o del correo. No distingue mayúsculas.
+          </span>
         </label>
 
         <div className="row wrap">
@@ -330,6 +384,7 @@ export function AdminUsuarios() {
                   <div>
                     <h2>{profile.nombre}</h2>
                     <p className="muted small">{profile.email ?? 'sin email'}</p>
+                    <p className="muted small">@{profile.username ?? 'sin usuario'}</p>
                   </div>
                   <span className={`status ${profile.activo ? 'disponible' : 'vendido'}`}>
                     {profile.activo ? 'activo' : 'pendiente'}
@@ -390,6 +445,13 @@ export function AdminUsuarios() {
                   >
                     {profile.activo ? 'Desactivar' : 'Activar'}
                   </button>
+                  <button
+                    className="secondary"
+                    onClick={() => void cambiarPassword(profile)}
+                    title="Cambiar la contraseña de este usuario"
+                  >
+                    Contraseña
+                  </button>
                 </div>
               </article>
             )
@@ -398,8 +460,9 @@ export function AdminUsuarios() {
       )}
 
       <p className="muted small">
-        Reglas: no se puede desactivar ni quitar el rol al último administrador activo. Un usuario
-        inactivo no ve productos aunque tenga visibilidad.
+        Reglas: no se puede desactivar ni quitar el rol al último administrador activo. Al activar
+        se confirma el correo en Auth para que el login sea válido. Un usuario inactivo no ve
+        productos aunque tenga visibilidad.
       </p>
     </section>
   )

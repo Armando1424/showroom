@@ -4,8 +4,9 @@ import { useAuth } from '../auth/AuthProvider'
 
 export function Login() {
   const { session, signIn } = useAuth()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -15,7 +16,7 @@ export function Login() {
     event.preventDefault()
     setError(null)
     setBusy(true)
-    const result = await signIn(email.trim(), password)
+    const result = await signIn(identifier.trim(), password)
     setBusy(false)
     if (result.error) setError(result.error)
   }
@@ -31,25 +32,39 @@ export function Login() {
         </p>
 
         <label>
-          Correo
+          Correo o usuario
           <input
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            type="text"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
             required
           />
         </label>
 
         <label>
           Contraseña
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
+          <div className="password-field">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="password-toggle"
+              onClick={() => setShowPassword((value) => !value)}
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            >
+              {showPassword ? 'Ocultar' : 'Ver'}
+            </button>
+          </div>
         </label>
 
         {error && <p className="error">{error}</p>}
@@ -59,8 +74,8 @@ export function Login() {
         </button>
 
         <p className="muted small">
-          El acceso es por invitación. Si no puedes entrar, pide a un administrador que active tu
-          cuenta.
+          Entra con tu correo o tu usuario. El usuario no distingue mayúsculas; la contraseña sí.
+          Si no puedes entrar, pide a un administrador que active tu cuenta.
         </p>
       </form>
     </div>
