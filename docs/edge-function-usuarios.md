@@ -1,5 +1,12 @@
 # Edge Functions: admin-users y login
 
+> **Estado actual (2026-11-23).** El frontend usa Supabase Auth nativo con
+> `<usuario>@showroom.local` y **no llama a `login`**. `admin-users` (versión
+> desplegada) se usa para crear usuarios. Las acciones `set-active` y
+> `set-password` del código no están desplegadas: Activar es una actualización
+> directa y el botón Contraseña se retiró. El correo real se resuelve en el
+> frontend con `frontend/src/auth/email-map.ts`.
+
 Dos funciones cubren la gestión de acceso sin poner la `service_role` en el
 frontend:
 

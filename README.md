@@ -8,8 +8,8 @@ manual en iPad/Excel y el aviso por WhatsApp.
 
 - **Frontend**: React + Vite + TypeScript, `HashRouter`, GitHub Pages.
 - **Backend**: Supabase (Postgres + RLS + RPCs `SECURITY DEFINER`).
-- **Auth**: Supabase Auth (correo o usuario + contraseña). Sin registro
-  público; usuarios creados y activados desde la app (Edge Function).
+- **Auth**: Supabase Auth (usuario o correo registrado + contraseña). Sin
+  registro público; usuarios creados y activados desde la app (Edge Function).
 - **Purga**: GitHub Actions (cron diario) con `service_role` desde secretos.
 
 ## Estructura
@@ -74,23 +74,20 @@ Function `admin-users`, que corre en Supabase con la `service_role` del lado
 servidor y valida que quien llama sea admin. Nunca expone esa clave al
 navegador.
 
-- **Crear con contraseña**: usuario confirmado; comparte la contraseña.
-- **Invitar por correo**: Supabase envía la invitación; el usuario define su
-  contraseña (requiere Site URL/Redirect correctos).
-- **Usuario**: cada cuenta tiene un `username` único que no distingue
-  mayúsculas. Se puede indicar al crear; si se deja vacío, se genera del nombre
-  o de la parte local del correo.
-- **Activar** confirma el correo en Auth además de marcar el perfil como
-  activo, así que el login queda válido aunque el usuario se haya creado desde
-  el Dashboard sin confirmar.
-- **Contraseña** permite al admin fijar una nueva contraseña (mínimo 6
-  caracteres) sin salir de la app.
+- **Usuario**: es el login. Se guarda como `<usuario>@showroom.local` en Auth;
+  no distingue mayúsculas. El correo real se guarda en `profiles.email` como
+  dato de contacto.
+- **Contraseña**: el usuario se crea confirmado; comparte el usuario y la
+  contraseña (mínimo 8 caracteres al crear).
+- **Activar**: marca el perfil como activo con una actualización directa.
+- Los roles y el proveedor se asignan en la misma página.
 
-El login acepta **correo o usuario**; el usuario no distingue mayúsculas y la
-contraseña sí. Despliegue de las funciones: ver
-[docs/edge-function-usuarios.md](docs/edge-function-usuarios.md). Sin las
-funciones desplegadas, usa la alternativa del Dashboard que aparece en la
-misma página.
+El login acepta **usuario o correo registrado**. El usuario se mapea a
+`<usuario>@showroom.local`; el correo registrado se resuelve a su usuario con
+un mapa de hashes en `frontend/src/auth/email-map.ts` (no expone correos en el
+bundle). Para usuarios nuevos, el username funciona de inmediato; para
+habilitar también su correo registrado hay que regenerar el mapa y
+redesplegar.
 
 ## Seguridad (resumen)
 
@@ -144,9 +141,9 @@ npm run dev
 
 Build de producción: `npm run build` (genera `frontend/dist`).
 
-Pantallas: login (correo o usuario, con ver/ocultar contraseña), lista de
-productos, alta/edición, marcar vendido, visibilidad y panel de usuarios/roles.
-HashRouter; base `/showroom/`.
+Pantallas: login (usuario o correo registrado, con ver/ocultar contraseña),
+lista de productos, alta/edición, marcar vendido, visibilidad y panel de
+usuarios/roles. HashRouter; base `/showroom/`.
 
 ## URLs
 
