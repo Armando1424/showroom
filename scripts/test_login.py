@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-"""Prueba el login de Showroom contra el proyecto desplegado.
+"""Prueba el login nativo de Showroom (usuario o correo + contraseña).
 
 Uso:
   SHOWROOM_TEST_PASSWORD=... python3 scripts/test_login.py --identifier will
-  python3 scripts/test_login.py --identifier will --email will@example.com
+  SHOWROOM_TEST_PASSWORD=... python3 scripts/test_login.py --identifier cristian
 
-Variables:
-  SUPABASE_URL              URL del proyecto (por defecto el de producción).
-  VITE_SUPABASE_ANON_KEY    anon key; si falta, se lee del bundle de Pages.
-  SHOWROOM_TEST_PASSWORD    contraseña de prueba; si falta, se pide por teclado.
-
+El usuario se mapea a <usuario>@showroom.local, el correo interno que usa
+Supabase Auth. No usa la Edge Function login ni tokens de despliegue.
 No imprime tokens ni la contraseña.
 """
 
@@ -51,17 +48,18 @@ def anon_key(explicit: str | None) -> str:
     return match.group(0)
 
 
+def email_for(identifier: str) -> str:
+    value = identifier.strip().lower()
+    return value if "@" in value else f"{value}@showroom.local"
+
+
 def login(url: str, key: str, identifier: str, password: str) -> tuple[int, dict]:
-    body = json.dumps({"identifier": identifier, "password": password}).encode()
+    body = json.dumps({"email": email_for(identifier), "password": password}).encode()
     request = urllib.request.Request(
-        f"{url}/functions/v1/login",
+        f"{url}/auth/v1/token?grant_type=password",
         data=body,
         method="POST",
-        headers={
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-        },
+        headers={"apikey": key, "Content-Type": "application/json"},
     )
     try:
         with urllib.request.urlopen(request, timeout=60) as response:
@@ -77,9 +75,8 @@ def login(url: str, key: str, identifier: str, password: str) -> tuple[int, dict
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--identifier", default="will", help="usuario a probar")
+    parser.add_argument("--identifier", default="will", help="usuario o correo a probar")
     parser.add_argument("--password", default=os.environ.get("SHOWROOM_TEST_PASSWORD"))
-    parser.add_argument("--email", help="correo del mismo usuario para probar esa vía")
     parser.add_argument("--url", default=os.environ.get("SUPABASE_URL", DEFAULT_URL))
     parser.add_argument("--anon-key")
     args = parser.parse_args()
@@ -94,10 +91,7 @@ def main() -> None:
     ]
 
     if password.lower() != password:
-        cases.append(("contraseña en minúsculas", args.identifier, password.lower(), 401))
-
-    if args.email:
-        cases.append(("correo", args.email, password, 200))
+        cases.append(("contraseña en minúsculas", args.identifier, password.lower(), 400))
 
     failures = 0
     for label, identifier, candidate, expected in cases:
@@ -106,7 +100,7 @@ def main() -> None:
         detail = "OK" if ok else f"esperaba {expected}, recibí {status}"
         if not ok:
             failures += 1
-            error = payload.get("error")
+            error = payload.get("error_description") or payload.get("msg") or payload.get("error")
             if error:
                 detail += f" ({error})"
         print(f"{label:28} {identifier:20} -> {status} {detail}")

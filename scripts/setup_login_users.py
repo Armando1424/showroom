@@ -106,6 +106,11 @@ def main() -> None:
         metavar="USUARIO=CONTRASEÑA",
         help="usuario a configurar (repetible)",
     )
+    parser.add_argument(
+        "--username-email",
+        action="store_true",
+        help="usar <usuario>@showroom.local como correo de Auth (login por usuario)",
+    )
     args = parser.parse_args()
 
     url = env("SUPABASE_URL").rstrip("/")
@@ -153,23 +158,31 @@ def main() -> None:
         user = matches[0]
         user_id = user["id"]
         email = (user.get("email") or "").lower()
-        local = email.split("@", 1)[0] if "@" in email else ""
         nombre = (user.get("user_metadata") or {}).get("nombre") or ""
-        print(f"  correo: {mask_email(email)}")
+        auth_email = f"{term}@showroom.local" if args.username_email else email
+        print(f"  correo real: {mask_email(email)}")
         print(f"  nombre: {nombre or '(sin nombre)'}")
-        print(f"  username candidato: {local or nombre.lower()}")
+        if args.username_email:
+            print(f"  usuario: {term}")
+            print(f"  correo de login: {auth_email}")
 
-        # 1. Confirmar correo y fijar contraseña.
+        # 1. Confirmar correo, fijar contraseña y, si aplica, el correo interno
+        #    <usuario>@showroom.local para el login por usuario.
+        payload: dict[str, object] = {"password": password, "email_confirm": True}
+        if args.username_email:
+            payload["email"] = auth_email
         status, data = call(
             "PUT",
             f"{url}/auth/v1/admin/users/{user_id}",
             service,
-            {"password": password, "email_confirm": True},
+            payload,
         )
         if status != 200:
             print(f"  ✗ no se pudo actualizar Auth: {status} {data}")
             continue
         print("  ✓ correo confirmado y contraseña fijada")
+        if args.username_email:
+            email = auth_email
 
         # 2. Activar perfil.
         status, data = call(
@@ -204,51 +217,18 @@ def main() -> None:
         if status in (200, 201):
             print("  ✓ roles proveedor/vendedor asegurados")
 
-        # 4. Validar login por correo.
+        # 4. Validar el login con el correo interno (usuario) o el real.
         status, data = call(
             "POST",
             f"{url}/auth/v1/token?grant_type=password",
             anon,
             {"email": email, "password": password},
         )
+        label = "LOGIN CON USUARIO" if args.username_email else "LOGIN POR CORREO"
         if status == 200:
-            print("  ✓ LOGIN POR CORREO: OK")
+            print(f"  ✓ {label}: OK")
         else:
-            print(f"  ✗ LOGIN POR CORREO: falló ({status}) {data}")
-
-        # 5. Simular la resolución del username (nombre o parte local),
-        #    igual que la Edge Function login.
-        resolved = None
-        status, rows = call(
-            "GET",
-            f"{url}/rest/v1/profiles?select=email&nombre=ilike.{urllib.parse.quote(term)}",
-            service,
-        )
-        if status == 200 and isinstance(rows, list) and len(rows) == 1:
-            resolved = rows[0].get("email")
-        if not resolved:
-            status, rows = call(
-                "GET",
-                f"{url}/rest/v1/profiles?select=email&email=ilike."
-                f"{urllib.parse.quote(term + '@%')}",
-                service,
-            )
-            if status == 200 and isinstance(rows, list) and len(rows) == 1:
-                resolved = rows[0].get("email")
-
-        if not resolved:
-            print("  ⚠ LOGIN POR USUARIO (simulado): no se pudo resolver el username")
-        else:
-            status, data = call(
-                "POST",
-                f"{url}/auth/v1/token?grant_type=password",
-                anon,
-                {"email": resolved, "password": password},
-            )
-            if status == 200:
-                print("  ✓ LOGIN POR USUARIO (simulado): OK")
-            else:
-                print(f"  ✗ LOGIN POR USUARIO (simulado): falló ({status}) {data}")
+            print(f"  ✗ {label}: falló ({status}) {data}")
 
 
 if __name__ == "__main__":

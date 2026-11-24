@@ -21,5 +21,6 @@ jobs:
           CRISTIAN_PASSWORD: ${{ secrets.CRISTIAN_TEST_PASSWORD }}
         run: |
           python3 scripts/setup_login_users.py \
+            --username-email \
             --set "will=$WILL_PASSWORD" \
             --set "cristian=$CRISTIAN_PASSWORD"
