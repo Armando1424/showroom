@@ -141,6 +141,10 @@ npm run dev
 
 Build de producción: `npm run build` (genera `frontend/dist`).
 
+Tests: `npm test` (Vitest + jsdom + Testing Library). Cobertura:
+`npm run test:coverage`, que genera `frontend/coverage/coverage-final.json`
+(ignorado por Git).
+
 Pantallas: login (usuario o correo registrado, con ver/ocultar contraseña),
 lista de productos, alta/edición, marcar vendido, visibilidad y panel de
 usuarios/roles. HashRouter; base `/showroom/`.
