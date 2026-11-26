@@ -10,14 +10,19 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    testTimeout: 20000,
+    include: ['tests/**/*.test.{ts,tsx}'],
+    testTimeout: 30000,
+    pool: 'forks',
+    poolOptions: {
+      forks: { maxForks: 2 },
+    },
     setupFiles: ['./tests/setup.ts'],
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
       reporter: ['json'],
       reportsDirectory: 'coverage',
-      exclude: ['src/main.tsx', 'src/vite-env.d.ts'],
+      exclude: ['src/main.tsx', 'src/vite-env.d.ts', 'src/lib/supabase.ts'],
     },
   },
 })

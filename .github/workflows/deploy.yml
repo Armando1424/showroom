@@ -48,6 +48,11 @@ jobs:
         run: npm ci
 
       - if: steps.check.outputs.configured == 'true'
+        name: Test
+        working-directory: frontend
+        run: npm test
+
+      - if: steps.check.outputs.configured == 'true'
         name: Build
         working-directory: frontend
         env:

@@ -145,6 +145,11 @@ Tests: `npm test` (Vitest + jsdom + Testing Library). Cobertura:
 `npm run test:coverage`, que genera `frontend/coverage/coverage-final.json`
 (ignorado por Git).
 
+E2E (opcional, read-only contra el beta): `npm run test:e2e` con
+`E2E_ADMIN_PASSWORD`, `E2E_WILL_PASSWORD`, `E2E_CRISTIAN_PASSWORD` y, para
+RLS/RPC, `SUPABASE_ANON_KEY`. Requiere Chromium (`CHROMIUM_PATH` o
+`/usr/bin/chromium`).
+
 Pantallas: login (usuario o correo registrado, con ver/ocultar contraseña),
 lista de productos, alta/edición, marcar vendido, visibilidad y panel de
 usuarios/roles. HashRouter; base `/showroom/`.

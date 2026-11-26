@@ -225,4 +225,117 @@ describe('ProductoFormPage.onSubmit', () => {
 
     expect(await screen.findByText('No autorizado')).toBeInTheDocument()
   })
+
+  it('edita con imagen nueva y elimina la anterior', async () => {
+    mocks.from.mockImplementation(() => makeQuery({ data: producto, error: null }))
+
+    const user = userEvent.setup()
+    renderEdit()
+
+    const nombre = await screen.findByLabelText('Nombre')
+    await user.clear(nombre)
+    await user.type(nombre, 'Producto con foto')
+    await uploadPhoto(user)
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    await waitFor(() => expect(bucket.upload).toHaveBeenCalledTimes(1))
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        'actualizar_imagen_producto',
+        expect.objectContaining({ p_id: 'p1' }),
+      ),
+    )
+    expect(bucket.remove).toHaveBeenCalledWith(['p1/old.jpg'])
+    expect(await screen.findByText('home')).toBeInTheDocument()
+  })
+
+  it('muestra error si falla la subida de la imagen', async () => {
+    bucket.upload.mockResolvedValue({ error: { message: 'falló' } })
+
+    const user = userEvent.setup()
+    renderCreate()
+    await user.type(screen.getByLabelText('Nombre'), 'Producto')
+    await uploadPhoto(user)
+    await user.click(screen.getByRole('button', { name: 'Crear producto' }))
+
+    expect(await screen.findByText('No se pudo subir la imagen: falló')).toBeInTheDocument()
+    expect(screen.queryByText('home')).not.toBeInTheDocument()
+  })
+
+  it('muestra error del insert y limpia la imagen subida', async () => {
+    mocks.from.mockImplementation(() => makeQuery({ data: [], error: { message: 'insert falló' } }))
+
+    const user = userEvent.setup()
+    renderCreate()
+    await user.type(screen.getByLabelText('Nombre'), 'Producto')
+    await uploadPhoto(user)
+    await user.click(screen.getByRole('button', { name: 'Crear producto' }))
+
+    expect(await screen.findByText('insert falló')).toBeInTheDocument()
+    expect(bucket.remove).toHaveBeenCalled()
+    expect(screen.queryByText('home')).not.toBeInTheDocument()
+  })
+
+  it('muestra error de actualizar_producto', async () => {
+    mocks.from.mockImplementation(() => makeQuery({ data: producto, error: null }))
+    mocks.rpc.mockImplementation((name: string) =>
+      name === 'actualizar_producto'
+        ? { error: { message: 'text falló' } }
+        : { error: null },
+    )
+
+    const user = userEvent.setup()
+    renderEdit()
+    await screen.findByLabelText('Nombre')
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    expect(await screen.findByText('text falló')).toBeInTheDocument()
+    expect(bucket.remove).not.toHaveBeenCalled()
+    expect(screen.queryByText('home')).not.toBeInTheDocument()
+  })
+
+  it('muestra error de actualizar_imagen_producto y limpia la nueva', async () => {
+    mocks.from.mockImplementation(() => makeQuery({ data: producto, error: null }))
+    mocks.rpc.mockImplementation((name: string) =>
+      name === 'actualizar_imagen_producto'
+        ? { error: { message: 'imagen falló' } }
+        : { error: null },
+    )
+
+    const user = userEvent.setup()
+    renderEdit()
+    await screen.findByLabelText('Nombre')
+    await uploadPhoto(user)
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    expect(await screen.findByText('imagen falló')).toBeInTheDocument()
+    await waitFor(() => expect(bucket.remove).toHaveBeenCalled())
+    expect(screen.queryByText('home')).not.toBeInTheDocument()
+  })
+
+  it('exige imagen al editar si no hay imagen actual', async () => {
+    mocks.from.mockImplementation(() =>
+      makeQuery({ data: { ...producto, imagen_path: '' }, error: null }),
+    )
+
+    const user = userEvent.setup()
+    renderEdit()
+    await screen.findByLabelText('Nombre')
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    expect(await screen.findByText('La imagen es obligatoria.')).toBeInTheDocument()
+    expect(mocks.rpc).not.toHaveBeenCalled()
+  })
+
+  it('reemplaza la vista previa al elegir otra imagen', async () => {
+    const user = userEvent.setup()
+    renderCreate()
+
+    const input = screen.getByLabelText('Elegir de galería') as HTMLInputElement
+    await user.upload(input, new File(['a'], 'a.png', { type: 'image/png' }))
+    await user.upload(input, new File(['b'], 'b.png', { type: 'image/png' }))
+
+    expect(URL.createObjectURL).toHaveBeenCalledTimes(2)
+    expect(URL.revokeObjectURL).toHaveBeenCalled()
+  })
 })

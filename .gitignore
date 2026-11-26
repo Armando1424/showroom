@@ -27,3 +27,7 @@ __pycache__/
 
 # Cobertura de tests
 frontend/coverage/
+
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
