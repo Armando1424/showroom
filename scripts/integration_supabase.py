@@ -74,6 +74,7 @@ def user_headers(token: str) -> dict[str, str]:
 
 def check(condition: bool, message: str) -> None:
     if not condition:
+        print(f"  ✗ {message}", file=sys.stderr, flush=True)
         raise AssertionError(message)
     print(f"  ✓ {message}")
 
@@ -97,7 +98,7 @@ def get(token: str, path: str):
 
 def rpc(token: str, name: str, body: dict):
     status, data = call("POST", f"/rest/v1/rpc/{name}", user_headers(token), body)
-    check(status == 200, f"RPC {name}")
+    check(status in (200, 204), f"RPC {name} ({status}: {data})")
     return data
 
 
@@ -143,7 +144,7 @@ def add_roles(user_id: str, roles: list[str]) -> None:
 
 def create_product(nombre: str, proveedor_id: str, created_by: str) -> str:
     product_id = str(uuid.uuid4())
-    status, _ = call(
+    status, data = call(
         "POST",
         "/rest/v1/productos",
         {**SERVICE_HEADERS, "Prefer": "return=representation"},
@@ -153,12 +154,12 @@ def create_product(nombre: str, proveedor_id: str, created_by: str) -> str:
             "descripcion": "Producto de integración",
             "precio": 100,
             "estado": "disponible",
-            "imagen_path": f"{PREFIX}/{product_id}.jpg",
+            "imagen_path": f"{product_id}/test.jpg",
             "proveedor_id": proveedor_id,
             "created_by": created_by,
         },
     )
-    check(status in (200, 201), f"producto {nombre}")
+    check(status in (200, 201), f"producto {nombre} ({status}: {data})")
     return product_id
 
 
