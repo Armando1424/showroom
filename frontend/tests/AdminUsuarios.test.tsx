@@ -205,4 +205,51 @@ describe('AdminUsuarios.crearUsuario', () => {
 
     expect(await screen.findByText('detalle del servidor')).toBeInTheDocument()
   })
+
+  it('crea un vendedor solo con proveedor asignado', async () => {
+    const proveedor: Profile = {
+      id: 'prov1',
+      nombre: 'Proveedor Uno',
+      email: 'p@example.com',
+      activo: true,
+      proveedor_id: null,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    }
+    mocks.proveedores = [proveedor]
+
+    const user = userEvent.setup()
+    render(<AdminUsuarios />)
+    await screen.findByText('Agregar usuario')
+
+    await user.type(screen.getByLabelText(/Usuario/), 'vendedor1')
+    await user.type(screen.getByLabelText('Nombre'), 'Vendedor Uno')
+    await user.type(screen.getByLabelText(/Correo de contacto/), 'vendedor1@example.com')
+    await user.type(screen.getByLabelText('Contraseña'), 'Secreta123')
+    await user.selectOptions(screen.getByLabelText('Roles'), 'vendedor')
+    await user.selectOptions(screen.getByLabelText('Proveedor asignado'), 'prov1')
+    await user.click(screen.getByRole('button', { name: 'Crear usuario' }))
+
+    await waitFor(() => expect(mocks.invoke).toHaveBeenCalled())
+    expect(mocks.invoke).toHaveBeenCalledWith('admin-users', {
+      body: {
+        email: 'vendedor1@showroom.local',
+        nombre: 'Vendedor Uno',
+        password: 'Secreta123',
+      },
+    })
+
+    await waitFor(() =>
+      expect(mocks.rpc).toHaveBeenCalledWith('asignar_proveedor', {
+        p_user: 'user-1',
+        p_proveedor: 'prov1',
+      }),
+    )
+
+    const insert = mocks.from.mock.results
+      .map((result) => result.value)
+      .find((query) => query.insert.mock.calls.length > 0)
+    expect(insert).toBeDefined()
+    expect(insert.insert).toHaveBeenCalledWith({ user_id: 'user-1', rol: 'vendedor' })
+  })
 })

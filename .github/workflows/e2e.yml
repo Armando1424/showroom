@@ -1,0 +1,47 @@
+name: E2E read-only
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy frontend"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: e2e-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E read-only
+        working-directory: frontend
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
+          E2E_WILL_PASSWORD: ${{ secrets.WILL_TEST_PASSWORD }}
+          E2E_CRISTIAN_PASSWORD: ${{ secrets.CRISTIAN_TEST_PASSWORD }}
+        run: npm run test:e2e

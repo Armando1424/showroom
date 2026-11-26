@@ -147,8 +147,18 @@ Tests: `npm test` (Vitest + jsdom + Testing Library). Cobertura:
 
 E2E (opcional, read-only contra el beta): `npm run test:e2e` con
 `E2E_ADMIN_PASSWORD`, `E2E_WILL_PASSWORD`, `E2E_CRISTIAN_PASSWORD` y, para
-RLS/RPC, `SUPABASE_ANON_KEY`. Requiere Chromium (`CHROMIUM_PATH` o
-`/usr/bin/chromium`).
+RLS/RPC, `SUPABASE_ANON_KEY`. Usa Chromium del sistema si existe
+(`CHROMIUM_PATH`) o el navegador de Playwright.
+
+Integración mutante RLS/RPC contra un Supabase de **test**:
+
+```sh
+SUPABASE_TEST_URL=... SUPABASE_TEST_ANON_KEY=... \
+SUPABASE_TEST_SERVICE_ROLE_KEY=... python3 scripts/integration_supabase.py
+```
+
+El script se niega a correr contra el proyecto beta/productivo, crea datos
+sintéticos y los limpia al final.
 
 Pantallas: login (usuario o correo registrado, con ver/ocultar contraseña),
 lista de productos, alta/edición, marcar vendido, visibilidad y panel de

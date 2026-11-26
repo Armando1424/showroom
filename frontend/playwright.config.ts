@@ -1,4 +1,8 @@
+import fs from 'node:fs'
 import { defineConfig } from '@playwright/test'
+
+const systemChromium = fs.existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined
+const executablePath = process.env.CHROMIUM_PATH || systemChromium
 
 export default defineConfig({
   testDir: './e2e',
@@ -11,7 +15,7 @@ export default defineConfig({
     baseURL: 'https://armando1424.github.io',
     headless: true,
     launchOptions: {
-      executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+      ...(executablePath ? { executablePath } : {}),
       args: ['--no-sandbox'],
     },
     trace: 'retain-on-failure',
